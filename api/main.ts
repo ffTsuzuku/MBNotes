@@ -6,6 +6,6 @@ dotenv.config()
 
 const app = express()
 app.get('/tickets', TicketController.all)
-app.get('/tickets/{ticket}', TicketController.find)
+app.get('/tickets/:ticket', TicketController.find)
 
 app.listen(3000)
