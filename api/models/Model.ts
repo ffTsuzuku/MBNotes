@@ -1,9 +1,11 @@
 import fs from 'node:fs'
+import { deep_copy } from '../core/utility/index.ts'
 
 interface TableSchema {
 	records: any[]
 	fields: Record<string, string>
 }
+export type Cast = Record<string, {get?:Function, set?:Function}>
 
 export default abstract class  Model {
 	protected  static readonly table: string
@@ -15,6 +17,8 @@ export default abstract class  Model {
 	protected attributes: Record<string, any> = {}
 	//changes made to the original values (only the last change persist)
 	protected changes: Record<string, any> = {}
+
+	protected static cast: Cast
 
 	//does this model has timestamp fields in db
 	static timestamps = true
@@ -33,6 +37,10 @@ export default abstract class  Model {
 		return this.name
 	}
 
+	static table_name () {
+		return this.table ?? this.name
+	}
+
 	//stores the entire db file into memory
 	protected  static get_db() {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
@@ -47,7 +55,7 @@ export default abstract class  Model {
 
 	//stores an entire table into memory
 	protected  static get_table(): TableSchema {
-		return this.get_db()[this.table] ?? []
+		return this.get_db()[this.table_name()] ?? []
 	}
 
 	//get all the records in a table
@@ -73,20 +81,32 @@ export default abstract class  Model {
 		if (!attributes) return false
 		const properties = Object.keys(attributes)
 		for(const prop of properties) {
-			this.changes[prop] = attributes[prop]
-			this.attributes[prop] = attributes[prop]
+			const caster = (this.constructor.cast as Cast)?.[prop]
+			const setter = caster?.set
+			const value = setter ? setter(attributes[prop]) : attributes[prop]
+			this.changes[prop] = value
+			this.attributes[prop] = value
 		}
 		return true
 	}
 
 	//how to display the model
 	toJSON(): Object {
+		const castedAttributes = deep_copy(this.attributes)
+		for (const attribute of Object.keys(this.constructor.cast)) {
+			const cast = (this.constructor.cast as Cast)[attribute]
+			const getter = cast.get
+			const original_value = castedAttributes[attribute]
+			const value = getter ? getter(original_value) : original_value
+			castedAttributes[attribute] = value 
+		}
 		return {
 			table: this.constructor.table,
 			primaryKey: this.constructor.primaryKey,
-			original: this.original,
-			attributes: this.attributes,
-			changes: this.changes
+			original: deep_copy(this.original),
+			attributes: castedAttributes,
+			changes: deep_copy(this.changes)
 		}
 	}
 }
+
