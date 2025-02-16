@@ -2,7 +2,7 @@ import fs from 'node:fs'
 
 export default abstract class  Model {
 	static readonly table: string
-	readonly primaryKey = 'id'
+	static readonly primaryKey = 'id'
 
 	static timestamps = true
 	static created_at = 'created_at'
@@ -12,7 +12,11 @@ export default abstract class  Model {
 		Object.assign(this, attributes)
 	}
 
-	static async all () {
+	static model_name () {
+		return this.name
+	}
+
+	private static get_db() {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
 		if (!ROOT_DIR) {
 			console.log(process.env)
@@ -20,7 +24,19 @@ export default abstract class  Model {
 		}
 		const PATH =  ROOT_DIR + '/api/db/db.json'
 		const file = fs.readFileSync(PATH)
-		const db = JSON.parse(file.toString())
-		return db[this.table]
+		return JSON.parse(file.toString())
+	}
+
+	private static get_table<T extends Model>(): T[] {
+		return this.get_db()[this.table]
+	}
+
+	static async all () {
+		this.get_table()
+	}
+
+	static async find<T extends Model> ( id: number): Promise<T|undefined> {
+		const records = this.get_table<T>()
+		return records.find(record => record[this.primaryKey] === id)
 	}
 }
