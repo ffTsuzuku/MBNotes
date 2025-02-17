@@ -45,9 +45,9 @@ export default abstract class  Model {
 
 	//attempts to resolve the models corresponding table name
 	static table_name () {
-		return this.table ?? this.name
+		// the fallback is class name + s e.g user becomes users
+		return this.table ?? `${this.name.toLowerCase()}s`
 	}
-
 	//stores the entire db file into memory
 	protected  static get_db() {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
