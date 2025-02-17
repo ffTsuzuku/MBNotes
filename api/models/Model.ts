@@ -10,6 +10,8 @@ interface TableSchema {
 export type Cast = Record<string, {get?:Function, set?:Function}>
 
 export default abstract class  Model {
+	//helps remove type warnings when accessing static properties on nonstatic methods
+	private STATIC = this.constructor as typeof Model
 	protected  static readonly table: string
 	protected  static readonly primaryKey = 'id'
 
@@ -33,7 +35,7 @@ export default abstract class  Model {
 	static dates: string[] = []
 
 	constructor(attributes: Record<string, any>){
-		const castedAttributes = this.constructor.cast_attributes(attributes)
+		const castedAttributes = this.STATIC.cast_attributes(attributes)
 		this.attributes = castedAttributes 
 		this.original = deep_copy(attributes)
 	}
@@ -87,7 +89,7 @@ export default abstract class  Model {
 		if (!attributes) return false
 		const properties = Object.keys(attributes)
 		for(const prop of properties) {
-			const caster = (this.constructor.cast as Cast)?.[prop]
+			const caster = (this.STATIC.cast)?.[prop]
 			const setter = caster?.set
 			const value = setter ? setter(attributes[prop]) : attributes[prop]
 			this.changes[prop] = value
@@ -140,12 +142,12 @@ export default abstract class  Model {
 	//how to display the model
 	toJSON(): Object {
 		// cast whatever attributes specified 
-		const castedAttributes = this.constructor.cast_attributes(
+		const castedAttributes = this.STATIC.cast_attributes(
 			this.attributes, true
 		)
 		return {
-			table: this.constructor.table_name(),
-			primaryKey: this.constructor.primaryKey,
+			table: this.STATIC.table_name(),
+			primaryKey: this.STATIC.primaryKey,
 			attributes: castedAttributes,
 		}
 	}
