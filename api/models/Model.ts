@@ -26,10 +26,12 @@ export default abstract class  Model {
 	static created_at = 'created_at'
 	static deleted_at = 'created_at'
 	static updated_at = 'updated_at'
+	static dates: string[] = []
 
 	constructor(attributes: Record<string, any>){
-		this.attributes = {...attributes}
-		this.original = {...attributes}
+		const castedAttributes = this.constructor.cast_attributes(attributes)
+		this.attributes = castedAttributes 
+		this.original = deep_copy(attributes)
 	}
 
 	//returns the name of the model
@@ -37,6 +39,7 @@ export default abstract class  Model {
 		return this.name
 	}
 
+	//attempts to resolve the models corresponding table name
 	static table_name () {
 		return this.table ?? this.name
 	}
@@ -90,22 +93,42 @@ export default abstract class  Model {
 		return true
 	}
 
+	//cast the values of the model based on the casting rules & other factors
+	protected static cast_attributes(
+		attributes: Record<string, any>
+	): (Record<string, any>|Error) {
+		if (!Object.keys(attributes).length) return {}
+
+		const copy = deep_copy(attributes)
+
+		// first we follow the casting rules
+		const cast = this.cast as Cast
+		const castables = Object.keys(cast ?? {})
+		for (const castable of castables) {
+			const getter = cast[castable].get
+			const original = copy[castable]
+			copy[castable] =  getter ? getter(original) : original
+		}
+
+		//next we transform any dates specified in the dates property
+		for (const date_field of this.dates) {
+			if (!(date_field in copy)) {
+				throw new Error(`${date_field} marked for casting, but does not exist on model`)
+			}
+			copy[date_field] = new Date(copy[date_field])
+		}
+
+		return copy
+	}
+
 	//how to display the model
 	toJSON(): Object {
-		const castedAttributes = deep_copy(this.attributes)
-		for (const attribute of Object.keys(this.constructor.cast)) {
-			const cast = (this.constructor.cast as Cast)[attribute]
-			const getter = cast.get
-			const original_value = castedAttributes[attribute]
-			const value = getter ? getter(original_value) : original_value
-			castedAttributes[attribute] = value 
-		}
+		// cast whatever attributes specified 
+		const castedAttributes = this.constructor.cast_attributes(this.attributes)
 		return {
 			table: this.constructor.table,
 			primaryKey: this.constructor.primaryKey,
-			original: deep_copy(this.original),
 			attributes: castedAttributes,
-			changes: deep_copy(this.changes)
 		}
 	}
 }

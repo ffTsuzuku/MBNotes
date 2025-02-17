@@ -7,6 +7,8 @@ export default class Ticket extends Model {
 		super(attributes)
 	}
 	
+	static dates = ['created_at', 'updated_at']
+
 	protected static cast:Cast = {
 		title: {
 			set: (description: string) => description.toLowerCase(),
