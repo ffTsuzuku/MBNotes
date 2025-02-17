@@ -4,7 +4,7 @@ import Model, {Cast} from "./Model.ts"
 export default class Ticket extends Model {
 	static readonly table = 'tickets'
 
-	constructor(attributes: Partial<Model>) {
+	constructor(attributes: Record<string, any>) {
 		super(attributes)
 	}
 	
@@ -18,9 +18,6 @@ export default class Ticket extends Model {
 			set: (description: string) => description.toLowerCase(),
 			get: (description: string) => description.toLocaleUpperCase()
 		},
-		id: {
-			get: (id: number) => 1000 + id
-		}
 	}
 
 	getTestAppendAttribute() {

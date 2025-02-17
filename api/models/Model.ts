@@ -6,7 +6,11 @@ import dayjs from 'dayjs'
 interface TableSchema {
 	records: any[]
 	fields: Record<string, string>
+	last_key: number
 }
+
+type FileDB = Record<string, TableSchema>
+
 export type Cast = Record<string, {get?:Function, set?:Function}>
 
 export default abstract class  Model {
@@ -25,13 +29,15 @@ export default abstract class  Model {
 	protected static cast: Cast
 	protected appends: string[] = []
 
+	protected fillable: string[] = []
+	protected guarded: string[] = []
 
 	//does this model has timestamp fields in db
 	static timestamps = true
 	//name of the field that records timestamps
-	static created_at = 'created_at'
-	static deleted_at = 'created_at'
-	static updated_at = 'updated_at'
+	protected readonly  created_at = 'created_at'
+	protected readonly deleted_at  = 'deleted_at'
+	protected readonly updated_at = 'updated_at'
 	//how dates will be persisted to db or formated when model is serialized
 	static dateFormat: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
 	static dates: string[] = []
@@ -53,7 +59,7 @@ export default abstract class  Model {
 		return this.table ?? `${this.name.toLowerCase()}s`
 	}
 	//stores the entire db file into memory
-	protected  static get_db() {
+	protected  static get_db(): FileDB {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
 		if (!ROOT_DIR) {
 			throw new Error('Please define ROOT_DIR in env')
@@ -68,11 +74,21 @@ export default abstract class  Model {
 		return this.get_db()[this.table_name()] ?? []
 	}
 
+	private static update_db(db: FileDB)  {
+		const ROOT_DIR = process.env.APP_ROOT_DIR 
+		if (!ROOT_DIR) {
+			throw new Error('Please define ROOT_DIR in env')
+		}
+		const PATH =  ROOT_DIR + '/api/db/db.json'
+		fs.writeFileSync(PATH, JSON.stringify(db))
+	}
+
 	//get all the records in a table
-	static async all(): Promise<Model[]> {
+	static all(): Model[] {
 		const table = this.get_table()
+		const records = table.records
 		//@ts-ignore
-		return table.map(record => new this(record))
+		return records.map(record => new this(record))
 	}
 
 	//find a specific record in a table
@@ -84,6 +100,43 @@ export default abstract class  Model {
 		if(record) return new this(record)
 
 		return undefined
+	}
+
+	save<T extends Model>(): boolean {
+		try {
+			const db = this.STATIC.get_db()
+			const table = db[this.STATIC.table_name()]
+			const records = table.records ?? []
+
+			//are we updating or inserting?
+			const primary_key = this.STATIC.primaryKey
+			const id = this.attributes[primary_key]
+			const exisiting_record = records.find(record => {
+				return record[primary_key] === id
+			})
+			const attributes = this.attributes
+
+			if(this.STATIC.timestamps) {
+				const format: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
+				const now = dayjs().format(format)
+				if (!exisiting_record) {
+					attributes[this.created_at] = now
+				}
+				attributes[this.updated_at] = now
+				attributes[this.deleted_at] = null 
+			}
+
+			if (exisiting_record) {
+				Object.assign(exisiting_record, this.attributes)
+			} else {
+				attributes[primary_key] = ++table.last_key
+				records.push(this.attributes)
+			}
+			this.STATIC.update_db(db)
+			return true 
+		} catch (e) {
+			return false
+		}
 	}
 
 	//update the value of attributes on a instance
@@ -127,7 +180,8 @@ export default abstract class  Model {
 		//next we transform any dates specified in the dates property
 		for (const date_field of this.dates) {
 			if (!(date_field in copy)) {
-				throw new Error(`${date_field} marked for casting, but does not exist on model`)
+				continue
+				//throw new Error(`${date_field} marked for casting, but does not exist on model`)
 			}
 			if (forSerialization) {
 				copy[date_field] = dayjs(new Date(copy[date_field])).format(
@@ -141,7 +195,9 @@ export default abstract class  Model {
 		return copy
 	}
 
-	//how to display the model
+	/**
+	 * serializes the model for display purposes
+	 * */
 	toJSON(): Object {
 		// cast whatever attributes specified 
 		const castedAttributes = this.STATIC.cast_attributes(
