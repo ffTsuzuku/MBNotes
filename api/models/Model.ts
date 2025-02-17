@@ -138,6 +138,37 @@ export default abstract class  Model {
 			return false
 		}
 	}
+	
+	update(): boolean {
+		try {
+			const db = this.STATIC.get_db()
+			const table = db[this.STATIC.table_name()]
+			const records = table.records ?? []
+
+			//are we updating or inserting?
+			const primary_key = this.STATIC.primaryKey
+			const id = this.attributes[primary_key]
+			const exisiting_record = records.find(record => {
+				return record[primary_key] === id
+			})
+
+			if (!exisiting_record) { 
+				throw new Error('Record does not exist')
+			}
+			const attributes = this.attributes
+			if(this.STATIC.timestamps) {
+				const format: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
+				const now = dayjs().format(format)
+				attributes[this.updated_at] = now
+			}
+			Object.assign(exisiting_record, this.attributes)
+			this.STATIC.update_db(db)
+			return true
+		} catch (e) {
+			console.log(e)
+			return false
+		}
+	}
 
 	//update the value of attributes on a instance
 	set_attributes(attributes: Record<string, any>): boolean {
