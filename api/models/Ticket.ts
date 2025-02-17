@@ -10,6 +10,7 @@ export default class Ticket extends Model {
 	
 	static dates = ['created_at', 'updated_at']
 	static dateFormat: DateFormat = 'DD-MM-YYYY'
+	protected appends: string[] = ['test_append']
 
 
 	protected static cast:Cast = {
@@ -20,5 +21,9 @@ export default class Ticket extends Model {
 		id: {
 			get: (id: number) => 1000 + id
 		}
+	}
+
+	getTestAppendAttribute() {
+		return "test"
 	}
 }

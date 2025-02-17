@@ -11,7 +11,7 @@ export type Cast = Record<string, {get?:Function, set?:Function}>
 
 export default abstract class  Model {
 	//helps remove type warnings when accessing static properties on nonstatic methods
-	private STATIC = this.constructor as typeof Model
+	private readonly STATIC = this.constructor as typeof Model
 	protected  static readonly table: string
 	protected  static readonly primaryKey = 'id'
 
@@ -23,6 +23,8 @@ export default abstract class  Model {
 	protected changes: Record<string, any> = {}
 
 	protected static cast: Cast
+	protected appends: string[] = []
+
 
 	//does this model has timestamp fields in db
 	static timestamps = true
@@ -145,11 +147,22 @@ export default abstract class  Model {
 		const castedAttributes = this.STATIC.cast_attributes(
 			this.attributes, true
 		)
-		return {
+		const data = {
 			table: this.STATIC.table_name(),
 			primaryKey: this.STATIC.primaryKey,
 			attributes: castedAttributes,
 		}
+		const appendValues = {}
+		for(const key of this.appends) {
+			const snakeCaseKey = key.split('_').reduce((prev, curr) => {
+				return prev + curr.charAt(0).toUpperCase() + curr.slice(1)
+			}, '')
+			const function_name = `get${snakeCaseKey}Attribute`
+			const value = this[function_name]?.()
+			appendValues[key] = value
+		}
+		Object.assign(data.attributes, appendValues)
+		return data
 	}
 }
 
