@@ -52,7 +52,6 @@ export default abstract class  Model {
 	protected  static get_db() {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
 		if (!ROOT_DIR) {
-			console.log(process.env)
 			throw new Error('Please define ROOT_DIR in env')
 		}
 		const PATH =  ROOT_DIR + '/api/db/db.json'
@@ -145,7 +144,7 @@ export default abstract class  Model {
 			this.attributes, true
 		)
 		return {
-			table: this.constructor.table,
+			table: this.constructor.table_name(),
 			primaryKey: this.constructor.primaryKey,
 			attributes: castedAttributes,
 		}
