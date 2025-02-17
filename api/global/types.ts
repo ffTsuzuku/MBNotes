@@ -1,0 +1,15 @@
+export type DateFormat = 
+  | 'YYYY-MM-DD'
+  | 'MM-DD-YYYY'
+  | 'DD-MM-YYYY'
+  | 'YYYY/MM/DD'
+  | 'MM/DD/YYYY'
+  | 'DD/MM/YYYY'
+  | 'YYYY.MM.DD'
+  | 'MM.DD.YYYY'
+  | 'DD.MM.YYYY'
+  | 'YYYY-MM-DD HH:mm:ss'
+  | 'YYYY-MM-DD hh:mm:ss A'
+  | 'YYYY-MM-DDTHH:mm:ssZ'
+  | 'HH:mm:ss'
+  | 'hh:mm:ss A';

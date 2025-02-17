@@ -1,3 +1,4 @@
+import {DateFormat} from "../global/types.ts"
 import Model, {Cast} from "./Model.ts"
 
 export default class Ticket extends Model {
@@ -8,6 +9,8 @@ export default class Ticket extends Model {
 	}
 	
 	static dates = ['created_at', 'updated_at']
+	static dateFormat: DateFormat = 'DD-MM-YYYY'
+
 
 	protected static cast:Cast = {
 		title: {

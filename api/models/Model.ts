@@ -1,5 +1,7 @@
 import fs from 'node:fs'
 import { deep_copy } from '../core/utility/index.ts'
+import {DateFormat} from '../global/types.ts'
+import dayjs from 'dayjs'
 
 interface TableSchema {
 	records: any[]
@@ -26,6 +28,8 @@ export default abstract class  Model {
 	static created_at = 'created_at'
 	static deleted_at = 'created_at'
 	static updated_at = 'updated_at'
+	//how dates will be persisted to db or formated when model is serialized
+	static dateFormat: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
 	static dates: string[] = []
 
 	constructor(attributes: Record<string, any>){
@@ -93,9 +97,16 @@ export default abstract class  Model {
 		return true
 	}
 
-	//cast the values of the model based on the casting rules & other factors
+	/**
+	 * Cast the values of the model based on the casting rules & other factors
+	 * @param attributes: the attributes to cast
+	 * @param forSerialization: when true it changes how casting is done 
+	 * for example the dates property will be ignored and instead the dateFormat
+	 * property will be used
+	 * */
 	protected static cast_attributes(
-		attributes: Record<string, any>
+		attributes: Record<string, any>,
+		forSerialization = false
 	): (Record<string, any>|Error) {
 		if (!Object.keys(attributes).length) return {}
 
@@ -115,7 +126,13 @@ export default abstract class  Model {
 			if (!(date_field in copy)) {
 				throw new Error(`${date_field} marked for casting, but does not exist on model`)
 			}
-			copy[date_field] = new Date(copy[date_field])
+			if (forSerialization) {
+				copy[date_field] = dayjs(new Date(copy[date_field])).format(
+					this.dateFormat
+				)
+			} else {
+				copy[date_field] = new Date(copy[date_field])
+			}
 		}
 
 		return copy
@@ -124,7 +141,9 @@ export default abstract class  Model {
 	//how to display the model
 	toJSON(): Object {
 		// cast whatever attributes specified 
-		const castedAttributes = this.constructor.cast_attributes(this.attributes)
+		const castedAttributes = this.constructor.cast_attributes(
+			this.attributes, true
+		)
 		return {
 			table: this.constructor.table,
 			primaryKey: this.constructor.primaryKey,
