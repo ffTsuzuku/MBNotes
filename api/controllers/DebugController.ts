@@ -3,10 +3,8 @@ import Ticket from "../models/Ticket.ts";
 
 export default class DebugController {
 	static async index(request: Request, response: Response) {
-		const ticket = await Ticket.find(8) as Ticket
-		ticket.set_attributes({title: 'Updating My Ticket Title'})
-		ticket.delete()
-
+		const ticket = new Ticket({title: 'Shouldnt be added', fakeField: 'fake'})
+		ticket.save()
 		response.json(Ticket.all())
 	}
 }

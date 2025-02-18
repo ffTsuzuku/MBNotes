@@ -2,10 +2,11 @@ import fs from 'node:fs'
 import { deep_copy } from '../core/utility/index.ts'
 import {DateFormat} from '../global/types.ts'
 import dayjs from 'dayjs'
+import Log from '../core/utility/Log.ts'
 
 interface TableSchema {
 	records: any[]
-	fields: Record<string, string>
+	fields: {name: string, type: string}[]
 	last_key: number
 }
 
@@ -119,26 +120,50 @@ export default abstract class  Model {
 				return record[primary_key] === id
 			})
 			const attributes = this.attributes
+			const copy = deep_copy(attributes)
+
+			// not let the model set / populate fields that are blocked
+			// if a field is in fillable but also guarded, guarded take 
+			// prescedence
+			const fillable_fields = new Set<string>(this.fillable)
+			const guarded_fields = new Set<string>(this.guarded)
+			const available_fields = new Set<string>(
+				table.fields.map(field => field.name)
+			)
+			for (const property of Object.keys(copy)) {
+				const is_guarded = guarded_fields.has(property)
+				const is_fillable = fillable_fields.has(property)
+				const check_fillable = fillable_fields.size > 0
+				const is_db_field = available_fields.has(property)
+				if (
+					(!is_fillable && check_fillable) ||
+					is_guarded ||
+					!is_db_field
+				) {
+					delete copy[property]
+				}
+			}
 
 			if(this.STATIC.timestamps) {
 				const format: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
 				const now = dayjs().format(format)
 				if (!exisiting_record) {
-					attributes[this.STATIC.created_at] = now
+					copy[this.STATIC.created_at] = now
 				}
-				attributes[this.STATIC.updated_at] = now
-				attributes[this.STATIC.deleted_at] = null 
+				copy[this.STATIC.updated_at] = now
+				copy[this.STATIC.deleted_at] = null 
 			}
 
 			if (exisiting_record) {
-				Object.assign(exisiting_record, this.attributes)
+				Object.assign(exisiting_record, copy)
 			} else {
-				attributes[primary_key] = ++table.last_key
-				records.push(this.attributes)
+				copy[primary_key] = ++table.last_key
+				records.push(copy)
 			}
 			this.STATIC.update_db(db)
 			return true 
 		} catch (e) {
+			Log.error(e)
 			return false
 		}
 	}
