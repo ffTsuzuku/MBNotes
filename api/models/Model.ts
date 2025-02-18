@@ -19,6 +19,7 @@ export default abstract class  Model {
 	protected  static readonly table: string
 	protected  static readonly primaryKey = 'id'
 
+	protected static  readonly soft_deletes = false
 	//the values of the model when instantiated
 	protected original: Record<string, any> = {}
 	//the current values of the model
@@ -35,12 +36,15 @@ export default abstract class  Model {
 	//does this model has timestamp fields in db
 	static timestamps = true
 	//name of the field that records timestamps
-	protected readonly  created_at = 'created_at'
-	protected readonly deleted_at  = 'deleted_at'
-	protected readonly updated_at = 'updated_at'
+	protected static readonly  created_at = 'created_at'
+	protected static readonly deleted_at  = 'deleted_at'
+	protected static readonly updated_at = 'updated_at'
 	//how dates will be persisted to db or formated when model is serialized
 	static dateFormat: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
 	static dates: string[] = []
+
+	protected abstract before_delete(): Promise<void> 
+	protected abstract after_delete(): Promise<void> 
 
 	constructor(attributes: Record<string, any>){
 		const castedAttributes = this.STATIC.cast_attributes(attributes)
@@ -120,10 +124,10 @@ export default abstract class  Model {
 				const format: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
 				const now = dayjs().format(format)
 				if (!exisiting_record) {
-					attributes[this.created_at] = now
+					attributes[this.STATIC.created_at] = now
 				}
-				attributes[this.updated_at] = now
-				attributes[this.deleted_at] = null 
+				attributes[this.STATIC.updated_at] = now
+				attributes[this.STATIC.deleted_at] = null 
 			}
 
 			if (exisiting_record) {
@@ -159,13 +163,48 @@ export default abstract class  Model {
 			if(this.STATIC.timestamps) {
 				const format: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
 				const now = dayjs().format(format)
-				attributes[this.updated_at] = now
+				attributes[this.STATIC.updated_at] = now
 			}
 			Object.assign(exisiting_record, this.attributes)
 			this.STATIC.update_db(db)
 			return true
 		} catch (e) {
 			console.log(e)
+			return false
+		}
+	}
+
+	delete():boolean {
+		try {
+			const db = this.STATIC.get_db()
+			const table = db[this.STATIC.table_name()]
+			const records = table.records ?? []
+
+			//are we updating or inserting?
+			const primary_key = this.STATIC.primaryKey
+			const id = this.attributes[primary_key]
+			let existing_record_index: number|undefined = undefined
+			const exisiting_record = records.find((record, index) => {
+				const match = record[primary_key] === id
+				if (match) existing_record_index = index
+				return  match
+			})
+
+			if (exisiting_record === undefined) { 
+				throw new Error('Record does not exist')
+			}
+			this.before_delete()
+			if (this.STATIC.soft_deletes) {
+				exisiting_record[this.STATIC.deleted_at] = dayjs().format(
+					this.STATIC.dateFormat
+				)
+			} else {
+				records.splice(existing_record_index!, 1)
+			}
+			this.STATIC.update_db(db)
+			this.after_delete()
+			return true
+		} catch (e) {
 			return false
 		}
 	}
