@@ -184,7 +184,28 @@ export default abstract class  Model {
 			if (!exisiting_record) { 
 				throw new Error('Record does not exist')
 			}
-			const attributes = this.attributes
+			const attributes = deep_copy(this.attributes)
+			// not let the model set / populate fields that are blocked
+			// if a field is in fillable but also guarded, guarded take 
+			// prescedence
+			const fillable_fields = new Set<string>(this.fillable)
+			const guarded_fields = new Set<string>(this.guarded)
+			const available_fields = new Set<string>(
+				table.fields.map(field => field.name)
+			)
+			for (const property of Object.keys(attributes)) {
+				const is_guarded = guarded_fields.has(property)
+				const is_fillable = fillable_fields.has(property)
+				const check_fillable = fillable_fields.size > 0
+				const is_db_field = available_fields.has(property)
+				if (
+					(!is_fillable && check_fillable) ||
+					is_guarded ||
+					!is_db_field
+				) {
+					delete attributes[property]
+				}
+			}
 			if(this.STATIC.timestamps) {
 				const format: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
 				const now = dayjs().format(format)
