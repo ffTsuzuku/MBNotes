@@ -1,7 +1,8 @@
+import QueryBuilder from "../core/utility/QueryBuilder.ts"
 import {DateFormat} from "../global/types.ts"
-import Model, {Cast} from "./Model.ts"
+import BaseModel, {Cast} from "./Model.ts"
 
-export default class Ticket extends Model {
+export default class Ticket extends BaseModel {
 	static readonly table = 'tickets'
 	protected static soft_deletes =  true
 

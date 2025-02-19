@@ -3,6 +3,7 @@ import { deep_copy } from '../core/utility/index.ts'
 import {DateFormat} from '../global/types.ts'
 import dayjs from 'dayjs'
 import Log from '../core/utility/Log.ts'
+import QueryBuilder from '../core/utility/QueryBuilder.ts'
 
 interface TableSchema {
 	records: any[]
@@ -14,16 +15,18 @@ type FileDB = Record<string, TableSchema>
 
 export type Cast = Record<string, {get?:Function, set?:Function}>
 
-export default abstract class  Model {
+export type Model = BaseModel & QueryBuilder
+
+export default abstract class  BaseModel {
 	//helps remove type warnings when accessing static properties on nonstatic methods
-	private readonly STATIC = this.constructor as typeof Model
+	private readonly STATIC = this.constructor as typeof BaseModel
 	protected  static readonly table: string
 	protected  static readonly primaryKey = 'id'
 
-	protected static  readonly soft_deletes = false
-	//the values of the model when instantiated
+	protected static  readonly soft_deletes: boolean = false
+	//the values of the BaseModel when instantiated
 	protected original: Record<string, any> = {}
-	//the current values of the model
+	//the current values of the BaseModel
 	protected attributes: Record<string, any> = {}
 	//changes made to the original values (only the last change persist)
 	protected changes: Record<string, any> = {}
@@ -34,35 +37,53 @@ export default abstract class  Model {
 	protected fillable: string[] = []
 	protected guarded: string[] = []
 
-	//does this model has timestamp fields in db
+	//does this BaseModel has timestamp fields in db
 	static timestamps = true
 	//name of the field that records timestamps
 	protected static readonly  created_at = 'created_at'
 	protected static readonly deleted_at  = 'deleted_at'
 	protected static readonly updated_at = 'updated_at'
-	//how dates will be persisted to db or formated when model is serialized
+	//how dates will be persisted to db or formated when BaseModel is serialized
 	static dateFormat: DateFormat = 'YYYY-MM-DDTHH:mm:ssZ'
+	//the fields in this array will have their values transformed to Date objects
 	static dates: string[] = []
 
 	protected abstract before_delete(): Promise<void> 
 	protected abstract after_delete(): Promise<void> 
 
+	private query_builder: QueryBuilder
+
 	constructor(attributes: Record<string, any>){
 		const castedAttributes = this.STATIC.cast_attributes(attributes)
 		this.attributes = castedAttributes 
 		this.original = deep_copy(attributes)
+
+		this.query_builder = new QueryBuilder()
+
+		return new Proxy(this as BaseModel, {
+			get (target, prop) {
+				if (prop in target) {
+					return target[prop]
+				} else if (prop in target.query_builder) {
+					return target.query_builder[
+						prop as keyof QueryBuilder 
+					].bind(target.query_builder)
+				}
+			}
+		}) as BaseModel & QueryBuilder
 	}
 
-	//returns the name of the model
+	//returns the name of the BaseModel
 	static model_name () {
 		return this.name
 	}
 
-	//attempts to resolve the models corresponding table name
+	//attempts to resolve the BaseModels corresponding table name
 	static table_name () {
 		// the fallback is class name + s e.g user becomes users
 		return this.table ?? `${this.name.toLowerCase()}s`
 	}
+
 	//stores the entire db file into memory
 	protected  static get_db(): FileDB {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
@@ -89,7 +110,7 @@ export default abstract class  Model {
 	}
 
 	//get all the records in a table
-	static all(): Model[] {
+	static all(): BaseModel[] {
 		const table = this.get_table()
 		const records = table.records
 		//@ts-ignore
@@ -97,17 +118,18 @@ export default abstract class  Model {
 	}
 
 	//find a specific record in a table
-	static async find<T extends Model> (id: number): Promise<T|undefined> {
+	static async find<T extends BaseModel> (
+		id: number
+	): Promise<(Model)|undefined> {
 		const table = this.get_table()
 		const records = table.records
 		const record = records.find(record => record[this.primaryKey] === id) 
 		//@ts-ignore
 		if(record) return new this(record)
-
 		return undefined
 	}
 
-	save<T extends Model>(): boolean {
+	save<T extends BaseModel>(): boolean {
 		try {
 			const db = this.STATIC.get_db()
 			const table = db[this.STATIC.table_name()]
@@ -122,7 +144,7 @@ export default abstract class  Model {
 			const attributes = this.attributes
 			const copy = deep_copy(attributes)
 
-			// not let the model set / populate fields that are blocked
+			// not let the BaseModel set / populate fields that are blocked
 			// if a field is in fillable but also guarded, guarded take 
 			// prescedence
 			const fillable_fields = new Set<string>(this.fillable)
@@ -185,7 +207,7 @@ export default abstract class  Model {
 				throw new Error('Record does not exist')
 			}
 			const attributes = deep_copy(this.attributes)
-			// not let the model set / populate fields that are blocked
+			// not let the BaseModel set / populate fields that are blocked
 			// if a field is in fillable but also guarded, guarded take 
 			// prescedence
 			const fillable_fields = new Set<string>(this.fillable)
@@ -270,7 +292,7 @@ export default abstract class  Model {
 	}
 
 	/**
-	 * Cast the values of the model based on the casting rules & other factors
+	 * Cast the values of the BaseModel based on the casting rules & other factors
 	 * @param attributes: the attributes to cast
 	 * @param forSerialization: when true it changes how casting is done 
 	 * for example the dates property will be ignored and instead the dateFormat
@@ -297,7 +319,7 @@ export default abstract class  Model {
 		for (const date_field of this.dates) {
 			if (!(date_field in copy)) {
 				continue
-				//throw new Error(`${date_field} marked for casting, but does not exist on model`)
+				//throw new Error(`${date_field} marked for casting, but does not exist on BaseModel`)
 			}
 			if (forSerialization) {
 				copy[date_field] = dayjs(new Date(copy[date_field])).format(
@@ -312,7 +334,7 @@ export default abstract class  Model {
 	}
 
 	/**
-	 * serializes the model for display purposes
+	 * serializes the BaseModel for display purposes
 	 * */
 	toJSON(): Object {
 		// cast whatever attributes specified 
