@@ -48,8 +48,8 @@ export default abstract class  BaseModel {
 	//the fields in this array will have their values transformed to Date objects
 	static dates: string[] = []
 
-	protected abstract before_delete(): Promise<void> 
-	protected abstract after_delete(): Promise<void> 
+	protected async before_delete(): Promise<void> {}
+	protected async after_delete(): Promise<void>  {}
 
 	private query_builder: QueryBuilder
 
