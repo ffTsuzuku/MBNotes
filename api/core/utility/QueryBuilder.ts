@@ -56,6 +56,16 @@ type WhereClause = {
 export default class QueryBuilder {
 	private columns: string[] = []
 	private wheres: WhereClause[] = []
+	private table: string|undefined
+
+	constructor(table?: string) {
+		this.table = table
+	}
+
+	from (table: string): QueryBuilder {
+		this.table = table
+		return this
+	}
 
 	select(fields: string[]): QueryBuilder {
 		this.columns = fields
