@@ -6,6 +6,7 @@ export default class DebugController {
 	static async index(request: Request, response: Response) {
 		const query = new QueryBuilder()
 		query.select(['test', 'world'])
+			.from('meow')
 			.where('title', 'meow')
 			.where('created_at', '>', '10')
 			.orWhere('deleted_at', '<', '10')
