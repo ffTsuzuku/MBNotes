@@ -49,7 +49,7 @@ type WhereClause = {
 	query?: QueryBuilder,
 	column?: string,
 	operator?: Operator,
-	value?: string|number,
+	value?: string|number|(string|number)[],
 	boolean?: "and" | "or"
 }
 
@@ -107,7 +107,6 @@ export default class QueryBuilder {
 			column,
 			boolean
 		})
-
 		return this
 	}
 
@@ -125,5 +124,36 @@ export default class QueryBuilder {
 
 	orWhereNotNull(column): QueryBuilder {
 		return this.whereNullOrNotNull(column, 'NotNull', 'or')
+	}
+
+	private whereInOrNotIn(
+		column: string,
+		values: (string|number)[],
+		type: WhereType = 'In',
+		boolean: 'and'|'or' = 'and'
+	) {
+		this.wheres.push({
+			type,
+			column,
+			value: values,
+			boolean
+		})
+		return this
+	}
+
+	whereIn(column: string, values: (string|number)[]) {
+		return this.whereInOrNotIn(column, values)
+	}
+
+	whereNotIn(column: string, values: (string|number)[]): QueryBuilder {
+		return this.whereInOrNotIn(column, values, 'NotIn')
+	}
+
+	orWhereIn(column: string, values: (string|number)[]) {
+		return this.whereInOrNotIn(column, values, 'In', 'or')
+	}
+
+	orWhereNotIn(column: string, values: (string|number)[]): QueryBuilder {
+		return this.whereInOrNotIn(column, values, 'NotIn', 'or')
 	}
 }

@@ -13,6 +13,11 @@ export default class DebugController {
 			.whereNotNull('created_at')
 			.orWhereNull('title')
 			.orWhereNotNull('title')
+			.whereIn('title', ['meow', 'howdy'])
+			.whereNotIn('title', ['meow', 'howdy'])
+			.orWhereIn('title', ['meow', 'howdy'])
+			.orWhereNotIn('title', ['meow', 'howdy'])
+
 		response.json(query)
 	}
 }
