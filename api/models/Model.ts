@@ -1,9 +1,9 @@
 import fs from 'node:fs'
 import { deep_copy } from '../core/utility/index.ts'
-import {DateFormat} from '../global/types.ts'
+import {DateFormat} from '../types/types.ts'
 import dayjs from 'dayjs'
 import Log from '../core/utility/Log.ts'
-import QueryBuilder from '../core/utility/QueryBuilder.ts'
+import QueryBuilder from '../core/db/QueryBuilder.ts'
 
 interface TableSchema {
 	records: any[]

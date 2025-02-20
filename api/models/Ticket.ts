@@ -1,5 +1,4 @@
-import QueryBuilder from "../core/utility/QueryBuilder.ts"
-import {DateFormat} from "../global/types.ts"
+import {DateFormat} from "../types/types.ts"
 import BaseModel, {Cast} from "./Model.ts"
 
 export default class Ticket extends BaseModel {
