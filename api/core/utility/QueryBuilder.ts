@@ -96,4 +96,34 @@ export default class QueryBuilder {
 	): QueryBuilder {
 		return this.where(column, operatorOrValue, potentialValue, 'or')
 	}
+
+	private whereNullOrNotNull(
+		column: string,
+		type: WhereType = 'Null',
+		boolean: ("and" | "or") = 'and'
+	): QueryBuilder {
+		this.wheres.push({
+			type,
+			column,
+			boolean
+		})
+
+		return this
+	}
+
+	whereNull(column): QueryBuilder {
+		return this.whereNullOrNotNull(column)
+	}
+
+	whereNotNull(column: string): QueryBuilder {
+		return this.whereNullOrNotNull(column, 'NotNull')
+	}
+
+	orWhereNull(column): QueryBuilder {
+		return this.whereNullOrNotNull(column, 'Null', 'or')
+	}
+
+	orWhereNotNull(column): QueryBuilder {
+		return this.whereNullOrNotNull(column, 'NotNull', 'or')
+	}
 }

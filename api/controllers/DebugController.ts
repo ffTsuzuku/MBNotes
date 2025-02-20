@@ -9,6 +9,10 @@ export default class DebugController {
 			.where('title', 'meow')
 			.where('created_at', '>', '10')
 			.orWhere('deleted_at', '<', '10')
+			.whereNull('created_at')
+			.whereNotNull('created_at')
+			.orWhereNull('title')
+			.orWhereNotNull('title')
 		response.json(query)
 	}
 }
