@@ -110,6 +110,8 @@
         "npm:@types/react-dom@^19.0.3",
         "npm:@types/react@^19.0.8",
         "npm:@vitejs/plugin-react@^4.3.4",
+        "npm:chalk@^5.4.1",
+        "npm:dayjs@^1.11.13",
         "npm:dotenv@^16.4.7",
         "npm:eslint-plugin-react-hooks@5",
         "npm:eslint-plugin-react-refresh@~0.4.18",
