@@ -178,4 +178,85 @@ export default class QueryBuilder {
 	orWhereNotIn(column: string, values: (string|number)[]): QueryBuilder {
 		return this.whereInOrNotIn(column, values, 'NotIn', 'or')
 	}
+
+
+	private whereBetweenOrNot(
+		column: string,
+		min: string|number,
+		max: string|number,
+		type: WhereType = 'Between',
+		boolean: ("and"|"or") = "and"
+	) {
+		this.wheres.push({
+			type,
+			column,
+			value: [min, max],
+			boolean
+		})
+		return this
+
+	}
+	static whereBetween(
+		column: string,
+		min: string|number,
+		max: string|number
+	): QueryBuilder {
+		return new QueryBuilder().whereBetween(column, min, max)
+	}
+
+	whereBetween(
+		column: string,
+		min: string|number,
+		max: string|number
+	): QueryBuilder {
+		return this.whereBetweenOrNot(column, min, max, 'Between' )
+	}
+
+	static whereNotBetween(
+		column: string,
+		min: string|number,
+		max: string|number
+	): QueryBuilder {
+		return new QueryBuilder().whereNotBetween(column, min, max) 
+	}
+
+	whereNotBetween(
+		column: string,
+		min: string|number,
+		max: string|number
+	): QueryBuilder {
+		return this.whereBetweenOrNot(column, min, max, 'NotBetween' )
+	}
+
+	static orWhereBetween(
+		column: string,
+		min: string|number,
+		max: string|number
+	): QueryBuilder {
+		return new QueryBuilder().orWhereBetween(column, min, max)
+	}
+
+	orWhereBetween(
+		column: string,
+		min: string|number,
+		max: string|number
+	): QueryBuilder {
+		return this.whereBetweenOrNot(column, min, max, 'Between', 'or')
+	}
+
+	static orWhereNotBetween(
+		column: string,
+		min: string|number,
+		max: string|number
+	): QueryBuilder {
+		return new QueryBuilder().orWhereNotBetween(column, min, max) 
+	}
+
+	orWhereNotBetween(
+		column: string,
+		min: string|number,
+		max: string|number
+	): QueryBuilder {
+		return this.whereBetweenOrNot(column, min, max, 'NotBetween', 'or')
+	}
 }

@@ -18,6 +18,10 @@ export default class DebugController {
 			.whereNotIn('title', ['meow', 'howdy'])
 			.orWhereIn('title', ['meow', 'howdy'])
 			.orWhereNotIn('title', ['meow', 'howdy'])
+			.whereBetween('meow', 3, 10)
+			.whereNotBetween('meow', 3, 10)
+			.orWhereBetween('meow', 3, 10)
+			.orWhereNotBetween('meow', 3, 10)
 
 		response.json(query)
 	}
