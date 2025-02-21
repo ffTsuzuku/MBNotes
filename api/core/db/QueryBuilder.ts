@@ -1,4 +1,8 @@
-import { WhereType, WhereClause, Operator } from "../../types/query_builder_types.ts"
+import {
+	WhereType,
+	WhereClause,
+	Operator 
+} from "../../types/query_builder_types.ts"
 
 export default class QueryBuilder {
 	private columns: string[] = []
@@ -258,5 +262,50 @@ export default class QueryBuilder {
 		max: string|number
 	): QueryBuilder {
 		return this.whereBetweenOrNot(column, min, max, 'NotBetween', 'or')
+	}
+
+	private whereExistOrNotExist (
+		fn: () => QueryBuilder,
+		type: WhereType = 'Exists',
+		boolean: "and" | "or" = 'and',
+	) {
+		this.wheres.push({query: fn, type, boolean})
+		return this
+	}
+
+	static whereExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
+		return new QueryBuilder().whereExist(callback)
+	}
+
+	whereExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
+		const fn = () => callback(new QueryBuilder())
+		return this.whereExistOrNotExist(fn)
+	}
+
+	static whereNotExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
+		return new QueryBuilder().whereNotExist(callback)
+	}
+
+	whereNotExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
+		const fn = () => callback(new QueryBuilder())
+		return this.whereExistOrNotExist(fn, 'NotExists')
+	}
+
+	static orWhereExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
+		return new QueryBuilder().orWhereExist(callback)
+	}
+
+	orWhereExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
+		const fn = () => callback(new QueryBuilder())
+		return this.whereExistOrNotExist(fn, 'Exists', 'or')
+	}
+
+	static orWhereNotExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
+		return new QueryBuilder().orWhereNotExist(callback)
+	}
+
+	orWhereNotExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
+		const fn = () => callback(new QueryBuilder())
+		return this.whereExistOrNotExist(fn, 'NotExists', 'or')
 	}
 }

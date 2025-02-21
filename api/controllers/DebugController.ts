@@ -22,6 +22,18 @@ export default class DebugController {
 			.whereNotBetween('meow', 3, 10)
 			.orWhereBetween('meow', 3, 10)
 			.orWhereNotBetween('meow', 3, 10)
+			.whereExist((query: QueryBuilder): QueryBuilder => {
+				return query.from('notes').whereNull('notes.deleted')
+			})
+			.whereNotExist((query: QueryBuilder): QueryBuilder => {
+				return query.from('notes').whereNull('notes.deleted')
+			})
+			.orWhereExist((query: QueryBuilder): QueryBuilder => {
+				return query.from('notes').whereNull('notes.deleted')
+			})
+			.orWhereNotExist((query: QueryBuilder): QueryBuilder => {
+				return query.from('notes').whereNull('notes.deleted')
+			})
 
 		response.json(query)
 	}

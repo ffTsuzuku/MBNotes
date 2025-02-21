@@ -1,3 +1,4 @@
+import QueryBuilder from "../core/db/QueryBuilder.ts"
 export type Operator = 
   |   "="
   |  "<"
@@ -46,7 +47,7 @@ export type WhereType =
 
 export type WhereClause = {
 	type: WhereType,
-	query?: QueryBuilder,
+	query?: QueryBuilder | (() => QueryBuilder),
 	column?: string,
 	operator?: Operator,
 	value?: string|number|(string|number)[],
