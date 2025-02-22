@@ -5,5 +5,5 @@ export abstract class DBAdapter {
 	
 	abstract get(): Record<string, any>[]
 
-	protected abstract applyWheres(records: Record<string, any>): void
+	protected abstract apply_wheres(records: Record<string, any>): void
 }

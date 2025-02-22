@@ -2,9 +2,8 @@ import QueryBuilder from "./QueryBuilder.ts";
 import fs from 'node:fs'
 import { FileDB, TableSchema } from "../../models/Model.ts";
 import { DBAdapter } from "./DBAdapter.ts";
-import {Operator, WhereClause} from "../../types/query_builder_types.ts";
+import { WhereClause } from "../../types/query_builder_types.ts";
 import {DateTime} from 'luxon'
-import {DateFormat} from "../../types/types.ts";
 
 export default class JSONDBAdapter extends DBAdapter {
 	protected query: QueryBuilder
@@ -40,7 +39,7 @@ export default class JSONDBAdapter extends DBAdapter {
 		
 		//apply wheres
 		if(this.query.wheres.length)
-			records = this.applyWheres(records)
+			records = this.apply_wheres(records)
 
 		//apply limit
 
@@ -136,7 +135,7 @@ export default class JSONDBAdapter extends DBAdapter {
 		return regex.test(db_val)
 	}
 
-	private applyBasicWhere(
+	private apply_basic_where(
 		original_records: Record<string, any>[],
 		records: Record<string, any>[],
 		where_clause: WhereClause,
@@ -180,7 +179,7 @@ export default class JSONDBAdapter extends DBAdapter {
 		})
 	}
 
-	private applyWhereNullOrNotNull(
+	private apply_where_null_or_not_null(
 		original_records: Record<string, any>[],
 		records: Record<string, any>[],
 		where_clause: WhereClause,
@@ -201,7 +200,7 @@ export default class JSONDBAdapter extends DBAdapter {
 		})
 	}
 
-	protected applyWheres(records: Record<string, any>[]) {
+	protected apply_wheres(records: Record<string, any>[]) {
 		let result: Record<string, any>[]  = []
 
 		const wheres = this.query.wheres
@@ -209,11 +208,11 @@ export default class JSONDBAdapter extends DBAdapter {
 			const records_to_filter = result.length ? result : records
 			if (where.type === 'Basic') {
 				result.push(
-					...this.applyBasicWhere(records, records_to_filter, where)
+					...this.apply_basic_where(records, records_to_filter, where)
 				)
 			} else if (where.type === 'Null' || where.type === 'NotNull') {
 				result.push(
-					...this.applyWhereNullOrNotNull(records, records_to_filter, where)
+					...this.apply_where_null_or_not_null(records, records_to_filter, where)
 				)
 			}
 		}
