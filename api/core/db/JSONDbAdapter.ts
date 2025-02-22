@@ -79,9 +79,18 @@ export default class JSONDBAdapter extends DBAdapter {
 		})
 		return standardized_values 
 	}
-	private apply_like(db_val: string, query_val: string) {
-		if (query_val === '') {
+
+	/**
+	 * A function that emulates the exact spec of mysql Like. 
+	 * @return: returns true if the like matches false otherwise
+	 * */
+	private perform_like(db_val: string, query_val: string): boolean {
+		if (query_val === '' && (query_val != '' && query_val != null)) {
 			return false 
+		}
+
+		if (query_val === '' && (query_val === ''|| query_val === null)) {
+			return true 
 		}
 
 		if (query_val === '%%') {
@@ -92,10 +101,7 @@ export default class JSONDBAdapter extends DBAdapter {
 			return db_val.toLowerCase() === query_val.toLowerCase()
 		}
 
-		if (
-			query_val.charAt(0) === '%' && 
-			query_val.charAt(query_val.length -1) === '%'
-		) {
+		if (query_val.endsWith('%') && query_val.endsWith('%')) {
 			const sanitized_query_val = query_val.slice(1, query_val.length - 1)
 			return db_val.toLowerCase().includes(sanitized_query_val.toLowerCase())
 		}
@@ -169,7 +175,7 @@ export default class JSONDBAdapter extends DBAdapter {
 				return db_val !== query_val
 			}
 			if (operator === 'like') {
-				return this.apply_like(db_val, query_val)
+				return this.perform_like(db_val, query_val)
 			}
 		})
 	}
