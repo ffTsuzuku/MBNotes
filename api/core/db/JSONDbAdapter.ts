@@ -2,7 +2,7 @@ import QueryBuilder from "./QueryBuilder.ts";
 import fs from 'node:fs'
 import { FileDB, TableSchema } from "../../models/Model.ts";
 import { DBAdapter } from "./DBAdapter.ts";
-import {WhereClause} from "../../types/query_builder_types.ts";
+import {Operator, WhereClause} from "../../types/query_builder_types.ts";
 import {DateTime} from 'luxon'
 import {DateFormat} from "../../types/types.ts";
 
@@ -39,7 +39,8 @@ export default class JSONDBAdapter extends DBAdapter {
 		//apply joins
 		
 		//apply wheres
-		records = this.applyWheres(records)
+		if(this.query.wheres.length)
+			records = this.applyWheres(records)
 
 		//apply limit
 
@@ -59,7 +60,7 @@ export default class JSONDBAdapter extends DBAdapter {
 	 * @param v2: second value
 	 * @return an array consisting of v1 and v2 in that order
 	 * */
-	private sandardize_values<T,V>(v1: T, v2: V): [any, any] {
+	private standardize_values<T,V>(v1: T, v2: V): [any, any] {
 		let standardized_values: [any,any] = [v1, v2]
 
 		standardized_values.forEach((value, index) => {
@@ -67,10 +68,9 @@ export default class JSONDBAdapter extends DBAdapter {
 			const is_number = !isNaN(Number(value)) 
 			const is_string = typeof value === 'string'
 			if (is_date) {
-				const format: DateFormat = 'YYYY-MM-DD HH:mm:ss'
-				standardized_values[index] = DateTime.fromFormat(
-					value as string, format
-				)
+				standardized_values[index] = DateTime.fromISO(
+					value as string
+				).toMillis()
 			} else if (is_number) {
 				standardized_values[index] = Number(value)
 			} else if (is_string) {
@@ -78,6 +78,56 @@ export default class JSONDBAdapter extends DBAdapter {
 			}
 		})
 		return standardized_values 
+	}
+	private apply_like(db_val: string, query_val: string) {
+		if (query_val === '') {
+			return false 
+		}
+
+		if (query_val === '%%') {
+			return true
+		}
+
+		if (!query_val.includes('%')) {
+			return db_val.toLowerCase() === query_val.toLowerCase()
+		}
+
+		if (
+			query_val.charAt(0) === '%' && 
+			query_val.charAt(query_val.length -1) === '%'
+		) {
+			const sanitized_query_val = query_val.slice(1, query_val.length - 1)
+			return db_val.toLowerCase().includes(sanitized_query_val.toLowerCase())
+		}
+
+		const special_regex_chars = new Set(['.', '^', '$', '*', '+', '?', '(', ')', '[', ']', '{', '}', '\\', '|', '/']);
+		const escape_char = '\\'
+		const zero_or_more_match = '.*'
+		const starts_with_match = '^'
+		const ends_with_match = '$'
+
+		let safe_regex_string = ''
+		for (let i = 0; i < (query_val as string).length; i++) {
+			const char = query_val.charAt(i)
+			const next = query_val.charAt(i + 1)
+			const prev = query_val.charAt(i - 1)
+
+			if (special_regex_chars.has(char)) {
+				safe_regex_string += `${escape_char}${char}`
+			} else if(char === '%') {
+				if (next && prev) {
+					safe_regex_string += zero_or_more_match
+				} else if (!next) {
+					safe_regex_string += ends_with_match
+				} else {
+					safe_regex_string += starts_with_match 
+				}
+			} else {
+				safe_regex_string += char
+			}
+		}
+		const regex = new RegExp(safe_regex_string, 'i')
+		return regex.test(db_val)
 	}
 
 	private applyBasicWhere(
@@ -91,20 +141,56 @@ export default class JSONDBAdapter extends DBAdapter {
 		}
 
 		const records_to_filter = boolean === 'or' ? original_records : records
-
 		return  records_to_filter.filter(record => {
-			const [db_val, query_val] = this.sandardize_values(
+			const [db_val, query_val] = this.standardize_values(
 				record[column], value
 			)
 			if (operator === '=') {
-				console.log({db_val, query_val, match: db_val === query_val})
 				return db_val === query_val
 			}
 
-			if (operator == '<>') {
-				return record[column] < value
+			if (operator === '<') {
+				return db_val < query_val
 			}
 
+			if (operator === '<=') {
+				return db_val <= query_val
+			}
+
+			if (operator === '>') {
+				return db_val > query_val
+			}
+
+			if (operator === '>=') {
+				return db_val >= query_val
+			}
+
+			if (operator === '!=') {
+				return db_val !== query_val
+			}
+			if (operator === 'like') {
+				return this.apply_like(db_val, query_val)
+			}
+		})
+	}
+
+	private applyWhereNullOrNotNull(
+		original_records: Record<string, any>[],
+		records: Record<string, any>[],
+		where_clause: WhereClause,
+	): Record<string, any>[] {
+		const { column, boolean, type} = where_clause
+		if (!column) {
+			throw Error(`Trying to apply a where null but column isn't specified`) 
+		}
+		const records_to_filter = boolean === 'or' ? original_records : records
+		return records_to_filter.filter(record => {
+			if (type === 'Null') {
+				return record[column] === null
+			}
+			if (type === 'NotNull') {
+				return record[column] !== null
+			}
 			return false
 		})
 	}
@@ -119,9 +205,12 @@ export default class JSONDBAdapter extends DBAdapter {
 				result.push(
 					...this.applyBasicWhere(records, records_to_filter, where)
 				)
+			} else if (where.type === 'Null' || where.type === 'NotNull') {
+				result.push(
+					...this.applyWhereNullOrNotNull(records, records_to_filter, where)
+				)
 			}
 		}
-
 		return result
 	}
 }
