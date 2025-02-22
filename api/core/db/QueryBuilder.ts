@@ -3,14 +3,20 @@ import {
 	WhereClause,
 	Operator 
 } from "../../types/query_builder_types.ts"
+import JSONDBAdapter from "./JSONDbAdapter.ts"
+import { DBAdapter } from "./DBAdapter.ts"
 
 export default class QueryBuilder {
+	private db_adapter: DBAdapter 
 	private columns: string[] = []
-	private wheres: WhereClause[] = []
-	private table: string|undefined
+	private _wheres: WhereClause[] = []
+	private _table: string|undefined
 
 	constructor(table?: string) {
-		this.table = table
+		this._table = table
+		// @todo: make sure we make this use dependency injection
+		// we check env what db type we using and set adapter accordingly
+		this.db_adapter = new JSONDBAdapter(this)
 	}
 
 	static from (table: string): QueryBuilder {
@@ -18,8 +24,20 @@ export default class QueryBuilder {
 	}
 
 	from (table: string): QueryBuilder {
-		this.table = table
+		this._table = table
 		return this
+	}
+
+	get table (): string|undefined {
+		return this._table
+	}
+
+	get wheres(): WhereClause[] {
+		return this._wheres
+	}
+
+	get (): Record<string, any>[] {
+		return this.db_adapter.get()
 	}
 
 	static select(fields: string[]): QueryBuilder {
@@ -61,7 +79,7 @@ export default class QueryBuilder {
 			operatorOrValue as Operator : '='
 		let value = potentialValue ? potentialValue : operatorOrValue
 		
-		this.wheres.push({
+		this._wheres.push({
 			type: "Basic",
 			column,
 			operator,
@@ -96,7 +114,7 @@ export default class QueryBuilder {
 		type: WhereType = 'Null',
 		boolean: ("and" | "or") = 'and'
 	): QueryBuilder {
-		this.wheres.push({
+		this._wheres.push({
 			type,
 			column,
 			boolean
@@ -142,7 +160,7 @@ export default class QueryBuilder {
 		type: WhereType = 'In',
 		boolean: 'and'|'or' = 'and'
 	) {
-		this.wheres.push({
+		this._wheres.push({
 			type,
 			column,
 			value: values,
@@ -191,7 +209,7 @@ export default class QueryBuilder {
 		type: WhereType = 'Between',
 		boolean: ("and"|"or") = "and"
 	) {
-		this.wheres.push({
+		this._wheres.push({
 			type,
 			column,
 			value: [min, max],
@@ -269,7 +287,7 @@ export default class QueryBuilder {
 		type: WhereType = 'Exists',
 		boolean: "and" | "or" = 'and',
 	) {
-		this.wheres.push({query: fn, type, boolean})
+		this._wheres.push({query: fn, type, boolean})
 		return this
 	}
 
