@@ -18,7 +18,7 @@ const main = async () => {
         }
 		const populated_template = template.replace("%1%", model_name)
 
-        const MODEL_PATH = join(Deno.cwd(), "api/models", `${model_name}.ts`);
+        const MODEL_PATH = join(Deno.cwd(), "models", `${model_name}.ts`);
 
         if (existsSync(MODEL_PATH)) {
             throw new Error("Model already exists");
