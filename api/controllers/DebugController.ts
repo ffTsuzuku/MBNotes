@@ -7,8 +7,6 @@ export default class DebugController {
 		const result = QueryBuilder.
 			from("tickets")
 			.select(['id', 'title'])
-			.where('title', 'Meow')
-			.orWhere('id', '=', '7')
 			.get()
 
 		response.json(result)

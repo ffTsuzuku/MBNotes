@@ -5,6 +5,9 @@ import { DBAdapter } from "./DBAdapter.ts";
 import { WhereClause } from "../../types/query_builder_types.ts";
 import {DateTime} from 'luxon'
 
+interface StandardizationFlags {
+	case_sensitive?: boolean
+}
 export default class JSONDBAdapter extends DBAdapter {
 	protected query: QueryBuilder
 	
@@ -59,7 +62,9 @@ export default class JSONDBAdapter extends DBAdapter {
 	 * @param v2: second value
 	 * @return an array consisting of v1 and v2 in that order
 	 * */
-	private standardize_values<T,V>(v1: T, v2: V): [any, any] {
+	private standardize_values<T,V>(
+		v1: T, v2: V, flags: StandardizationFlags =  {case_sensitive: false}
+	): [any, any] {
 		let standardized_values: [any,any] = [v1, v2]
 
 		standardized_values.forEach((value, index) => {
@@ -73,7 +78,12 @@ export default class JSONDBAdapter extends DBAdapter {
 			} else if (is_number) {
 				standardized_values[index] = Number(value)
 			} else if (is_string) {
-				standardized_values[index] = value.toLowerCase()
+				const {case_sensitive} = flags
+				if (case_sensitive) {
+					standardized_values[index] = value
+				} else {
+					standardized_values[index] = value.toLowerCase()
+				}
 			}
 		})
 		return standardized_values 
@@ -81,28 +91,29 @@ export default class JSONDBAdapter extends DBAdapter {
 
 	/**
 	 * A function that emulates the exact spec of mysql Like. 
+	 * @WARN: MAKE SURE TO CALL standardize_values on inputs before this
 	 * @return: returns true if the like matches false otherwise
 	 * */
-	private perform_like(db_val: string, query_val: string): boolean {
+	private perform_like(
+		db_val: string,
+		query_val: string,
+		case_sensitive: boolean = false,
+	): boolean {
 		if (query_val === '' && (query_val != '' && query_val != null)) {
 			return false 
 		}
-
 		if (query_val === '' && (query_val === ''|| query_val === null)) {
 			return true 
 		}
-
 		if (query_val === '%%') {
 			return true
 		}
-
 		if (!query_val.includes('%')) {
-			return db_val.toLowerCase() === query_val.toLowerCase()
+			return db_val === query_val
 		}
-
-		if (query_val.endsWith('%') && query_val.endsWith('%')) {
+		if (query_val.startsWith('%') && query_val.endsWith('%')) {
 			const sanitized_query_val = query_val.slice(1, query_val.length - 1)
-			return db_val.toLowerCase().includes(sanitized_query_val.toLowerCase())
+			return db_val.includes(sanitized_query_val)
 		}
 
 		const special_regex_chars = new Set(['.', '^', '$', '*', '+', '?', '(', ')', '[', ']', '{', '}', '\\', '|', '/']);
@@ -119,19 +130,23 @@ export default class JSONDBAdapter extends DBAdapter {
 
 			if (special_regex_chars.has(char)) {
 				safe_regex_string += `${escape_char}${char}`
-			} else if(char === '%') {
-				if (next && prev) {
-					safe_regex_string += zero_or_more_match
-				} else if (!next) {
-					safe_regex_string += ends_with_match
-				} else {
-					safe_regex_string += starts_with_match 
-				}
+			} else if (char === '%' && prev && next) {
+				safe_regex_string += zero_or_more_match
+			} else if (char == '%') {
+				// remove the percents
+				continue
 			} else {
 				safe_regex_string += char
 			}
 		}
-		const regex = new RegExp(safe_regex_string, 'i')
+		if (query_val.startsWith("%")) {
+			safe_regex_string = safe_regex_string + ends_with_match
+		}
+		if (query_val.endsWith("%")) {
+			safe_regex_string = starts_with_match + safe_regex_string
+		}
+		const flags = case_sensitive ? '' : 'i'
+		const regex = new RegExp(safe_regex_string, flags)
 		return regex.test(db_val)
 	}
 
@@ -147,35 +162,38 @@ export default class JSONDBAdapter extends DBAdapter {
 
 		const records_to_filter = boolean === 'or' ? original_records : records
 		return  records_to_filter.filter(record => {
-			const [db_val, query_val] = this.standardize_values(
+			let [db_val, query_val] = this.standardize_values(
 				record[column], value
 			)
 			if (operator === '=') {
 				return db_val === query_val
 			}
-
 			if (operator === '<') {
 				return db_val < query_val
 			}
-
 			if (operator === '<=') {
 				return db_val <= query_val
 			}
-
 			if (operator === '>') {
 				return db_val > query_val
 			}
-
 			if (operator === '>=') {
 				return db_val >= query_val
 			}
-
-			if (operator === '!=') {
+			if (operator === '!=' || operator === '<>') {
 				return db_val !== query_val
 			}
 			if (operator === 'like') {
 				return this.perform_like(db_val, query_val)
 			}
+			if (operator === 'like binary') {
+				[db_val, query_val] = this.standardize_values(
+					record[column], value, {case_sensitive: true}
+				)
+				return this.perform_like(db_val, query_val, true)
+			}
+
+			throw new Error('Unsupported operator type')
 		})
 	}
 

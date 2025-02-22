@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "api": "deno --watch --allow-all api/main.ts",
+	"test:api": "deno test --allow-all --env-file=.env",
     "make:model": "deno run --allow-all api/commands/make_model.ts"
   },
   "dependencies": {

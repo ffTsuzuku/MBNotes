@@ -63,6 +63,7 @@ const deep_copy = <T>(value: T, history = new WeakMap()): T => {
     if (typeof value === 'object') {
         const copy: Record<string, any> = {}
         for (const property of Object.keys(value)) {
+			//@ts-ignore
             const original = value[property]
             if (history.has(original)) {
                 copy[property] = original // Return the existing reference
