@@ -1,7 +1,7 @@
 import QueryBuilder from "./QueryBuilder.ts"
 
 export abstract class DBAdapter {
-	protected query: QueryBuilder
+	protected abstract query: QueryBuilder
 	
 	abstract get(): Record<string, any>[]
 

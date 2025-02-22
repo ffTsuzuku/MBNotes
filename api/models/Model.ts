@@ -63,10 +63,13 @@ export default abstract class  BaseModel {
 		return new Proxy(this as BaseModel, {
 			get (target, prop) {
 				if (prop in target) {
+					//@ts-ignore
 					return target[prop]
 				} else if (prop in target.query_builder) {
+					//@ts-ignore
 					return target.query_builder[
 						prop as keyof QueryBuilder 
+						//@ts-ignore
 					].bind(target.query_builder)
 				}
 			}
@@ -185,6 +188,7 @@ export default abstract class  BaseModel {
 			this.STATIC.update_db(db)
 			return true 
 		} catch (e) {
+			//@ts-ignore
 			Log.error(e)
 			return false
 		}
@@ -352,7 +356,9 @@ export default abstract class  BaseModel {
 				return prev + curr.charAt(0).toUpperCase() + curr.slice(1)
 			}, '')
 			const function_name = `get${snakeCaseKey}Attribute`
+			//@ts-ignore
 			const value = this[function_name]?.()
+			// @ts-ignore
 			appendValues[key] = value
 		}
 		Object.assign(data.attributes, appendValues)

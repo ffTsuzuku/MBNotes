@@ -75,6 +75,8 @@ export default class QueryBuilder {
 		potentialValue?: string|number,
 		boolean: ("and" | "or") = 'and'
 	): QueryBuilder {
+		// in laravel the value param is optional and when not used 
+		// defaults the comparision operator to =
 		const operator = potentialValue !== undefined ? 
 			operatorOrValue as Operator : '='
 		let value = potentialValue ? potentialValue : operatorOrValue
@@ -122,11 +124,11 @@ export default class QueryBuilder {
 		return this
 	}
 
-	static whereNull(column): QueryBuilder {
+	static whereNull(column: string): QueryBuilder {
 		return new QueryBuilder().whereNull(column)
 	}
 
-	whereNull(column): QueryBuilder {
+	whereNull(column: string): QueryBuilder {
 		return this.whereNullOrNotNull(column)
 	}
 
@@ -138,19 +140,19 @@ export default class QueryBuilder {
 		return this.whereNullOrNotNull(column, 'NotNull')
 	}
 
-	static orWhereNull(column): QueryBuilder {
+	static orWhereNull(column: string): QueryBuilder {
 		return new QueryBuilder().orWhereNull(column)
 	}
 
-	orWhereNull(column): QueryBuilder {
+	orWhereNull(column: string): QueryBuilder {
 		return this.whereNullOrNotNull(column, 'Null', 'or')
 	}
 
-	static orWhereNotNull(column): QueryBuilder {
+	static orWhereNotNull(column: string): QueryBuilder {
 		return new QueryBuilder().orWhereNull(column)
 	}
 
-	orWhereNotNull(column): QueryBuilder {
+	orWhereNotNull(column: string): QueryBuilder {
 		return this.whereNullOrNotNull(column, 'NotNull', 'or')
 	}
 
