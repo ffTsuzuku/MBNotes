@@ -5,13 +5,13 @@ import dayjs from 'dayjs'
 import Log from '../core/utility/Log.ts'
 import QueryBuilder from '../core/db/QueryBuilder.ts'
 
-interface TableSchema {
+export interface TableSchema {
 	records: any[]
 	fields: {name: string, type: string}[]
 	last_key: number
 }
 
-type FileDB = Record<string, TableSchema>
+export type FileDB = Record<string, TableSchema>
 
 export type Cast = Record<string, {get?:Function, set?:Function}>
 

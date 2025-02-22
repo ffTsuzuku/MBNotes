@@ -107,6 +107,7 @@
       "dependencies": [
         "npm:@eslint/js@^9.19.0",
         "npm:@types/express@5",
+        "npm:@types/luxon@^3.4.2",
         "npm:@types/react-dom@^19.0.3",
         "npm:@types/react@^19.0.8",
         "npm:@vitejs/plugin-react@^4.3.4",
@@ -118,6 +119,7 @@
         "npm:eslint@^9.19.0",
         "npm:express@^4.21.2",
         "npm:globals@^15.14.0",
+        "npm:luxon@^3.5.0",
         "npm:react-dom@19",
         "npm:react@19",
         "npm:typescript-eslint@^8.22.0",
