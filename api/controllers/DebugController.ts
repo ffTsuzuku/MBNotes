@@ -4,37 +4,13 @@ import QueryBuilder from "../core/db/QueryBuilder.ts";
 
 export default class DebugController {
 	static async index(request: Request, response: Response) {
-		const query = new QueryBuilder()
-		query.select(['test', 'world'])
-			.from('meow')
-			.where('title', 'meow')
-			.where('created_at', '>', '10')
-			.orWhere('deleted_at', '<', '10')
-			.whereNull('created_at')
-			.whereNotNull('created_at')
-			.orWhereNull('title')
-			.orWhereNotNull('title')
-			.whereIn('title', ['meow', 'howdy'])
-			.whereNotIn('title', ['meow', 'howdy'])
-			.orWhereIn('title', ['meow', 'howdy'])
-			.orWhereNotIn('title', ['meow', 'howdy'])
-			.whereBetween('meow', 3, 10)
-			.whereNotBetween('meow', 3, 10)
-			.orWhereBetween('meow', 3, 10)
-			.orWhereNotBetween('meow', 3, 10)
-			.whereExist((query: QueryBuilder): QueryBuilder => {
-				return query.from('notes').whereNull('notes.deleted')
-			})
-			.whereNotExist((query: QueryBuilder): QueryBuilder => {
-				return query.from('notes').whereNull('notes.deleted')
-			})
-			.orWhereExist((query: QueryBuilder): QueryBuilder => {
-				return query.from('notes').whereNull('notes.deleted')
-			})
-			.orWhereNotExist((query: QueryBuilder): QueryBuilder => {
-				return query.from('notes').whereNull('notes.deleted')
-			})
+		const result = QueryBuilder.
+			from("tickets")
+			.select(['id', 'title'])
+			.where('title', 'Meow')
+			.orWhere('id', '=', '7')
+			.get()
 
-		response.json(query)
+		response.json(result)
 	}
 }
