@@ -6,7 +6,8 @@
   "scripts": {
     "api": "deno --watch --allow-all main.ts",
 	"make:model": "deno --allow-all ./commands/make_model.ts",
-	"test": "deno test --allow-all --env-file=.env"
+	"make:test": "deno --allow-all ./commands/make_test.ts",
+	"test": "deno test tests/*.ts --allow-all --env-file=.env"
   },
   "dependencies": {
     "@types/express": "^5.0.0",
