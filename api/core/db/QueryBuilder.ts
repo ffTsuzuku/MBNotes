@@ -1,10 +1,12 @@
 import {
 	WhereType,
 	WhereClause,
-	Operator 
+	Operator, 
+	QuerySchema
 } from "../../types/query_builder_types.ts"
 import JSONDBAdapter from "./JSONDbAdapter.ts"
 import { DBAdapter } from "./DBAdapter.ts"
+import {deep_copy} from "../utility/index.ts"
 
 export default class QueryBuilder {
 	private db_adapter: DBAdapter 
@@ -12,11 +14,11 @@ export default class QueryBuilder {
 	private _wheres: WhereClause[] = []
 	private _table: string|undefined
 
-	constructor(table?: string) {
+	constructor(table?: string, adapter?: DBAdapter) {
 		this._table = table
 		// @todo: make sure we make this use dependency injection
 		// we check env what db type we using and set adapter accordingly
-		this.db_adapter = new JSONDBAdapter(this)
+		this.db_adapter = adapter ? adapter : new JSONDBAdapter()
 	}
 
 	static from (table: string): QueryBuilder {
@@ -37,7 +39,7 @@ export default class QueryBuilder {
 	}
 
 	get (): Record<string, any>[] {
-		return this.db_adapter.get()
+		return this.db_adapter.get(this.generate_schema())
 	}
 
 	static select(fields: string[]): QueryBuilder {
@@ -327,5 +329,13 @@ export default class QueryBuilder {
 	orWhereNotExist(callback: (query: QueryBuilder) => QueryBuilder): QueryBuilder {
 		const fn = () => callback(new QueryBuilder())
 		return this.whereExistOrNotExist(fn, 'NotExists', 'or')
+	}
+
+	generate_schema(): QuerySchema {
+		return {
+			table: this.table ?? '',
+			columns: deep_copy(this.columns),
+			wheres: deep_copy(this.wheres),
+		}
 	}
 }

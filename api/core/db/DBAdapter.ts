@@ -1,9 +1,10 @@
-import QueryBuilder from "./QueryBuilder.ts"
+import {QuerySchema, WhereClause} from "../../types/query_builder_types.ts";
 
 export abstract class DBAdapter {
-	protected abstract query: QueryBuilder
-	
-	abstract get(): Record<string, any>[]
+	abstract get(schema: QuerySchema): Record<string, any>[]
 
-	protected abstract apply_wheres(records: Record<string, any>): void
+	protected abstract apply_wheres(
+		records: Record<string, any>,
+		wheres: WhereClause[]
+	): void
 }

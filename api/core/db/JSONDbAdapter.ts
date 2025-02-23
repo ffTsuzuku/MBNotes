@@ -1,23 +1,20 @@
 import QueryBuilder from "./QueryBuilder.ts";
 import fs from 'node:fs'
-import { FileDB, TableSchema } from "../../models/Model.ts";
 import { DBAdapter } from "./DBAdapter.ts";
-import { WhereClause } from "../../types/query_builder_types.ts";
+import { QuerySchema, WhereClause } from "../../types/query_builder_types.ts";
+import { JSONFileDB, JSONTableSchema } from "../../types/db_types.ts";
 import {DateTime} from 'luxon'
 
 interface StandardizationFlags {
 	case_sensitive?: boolean
 }
 export default class JSONDBAdapter extends DBAdapter {
-	protected query: QueryBuilder
-	
-	constructor(query: QueryBuilder) {
+	constructor() {
 		super()
-		this.query = query
 	}
 
 	//stores the entire db file into memory
-	private get_db(): FileDB {
+	public get_db(): JSONFileDB {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
 		if (!ROOT_DIR) {
 			throw new Error('Please define ROOT_DIR in env')
@@ -27,22 +24,22 @@ export default class JSONDBAdapter extends DBAdapter {
 		return JSON.parse(file.toString())
 	}
 
-	private get_table(): TableSchema {
-		const table = this.query.table
-		if (!table) {
+	get_table(table_name: string): JSONTableSchema {
+		if (!table_name) {
 			throw new Error('Please define a table')
 		}
-		return this.get_db()[table] ?? []
+		return this.get_db()[table_name] ?? []
 	}
 
-	get(): Record<string, any>[] {
-		const table =  this.get_table()
+	get(query_schema: QuerySchema): Record<string, any>[] {
+		const { table: table_name, wheres, columns} = query_schema
+		const table =  this.get_table(table_name)
 		let records = table.records
 		//apply joins
 		
 		//apply wheres
-		if(this.query.wheres.length)
-			records = this.apply_wheres(records)
+		if(wheres.length)
+			records = this.apply_wheres(records, wheres)
 
 		//apply limit
 
@@ -272,10 +269,11 @@ export default class JSONDBAdapter extends DBAdapter {
 		})
 	}
 
-	protected apply_wheres(records: Record<string, any>[]) {
+	protected apply_wheres(
+		records: Record<string, any>[], wheres: WhereClause[]
+	) {
 		let result: Record<string, any>[]  = []
 
-		const wheres = this.query.wheres
 		for (const where of wheres) {
 			const records_to_filter = result.length ? result : records
 			if (where.type === 'Basic') {
@@ -284,7 +282,9 @@ export default class JSONDBAdapter extends DBAdapter {
 				)
 			} else if (where.type === 'Null' || where.type === 'NotNull') {
 				result.push(
-					...this.apply_where_null_or_not_null(records, records_to_filter, where)
+					...this.apply_where_null_or_not_null(
+						records, records_to_filter, where
+					)
 				)
 			}
 		}
