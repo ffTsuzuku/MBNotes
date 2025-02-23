@@ -28,7 +28,6 @@ export const make_mock_query = (
 	table_name: string, data_set?: Record<string, JSONTableSchema>
 ) => {
 	const mock_adapter = make_mock_json_db_adapter(data_set)
-
 	return new QueryBuilder(table_name, mock_adapter)
 }
 

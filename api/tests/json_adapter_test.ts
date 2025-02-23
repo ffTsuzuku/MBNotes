@@ -1,9 +1,6 @@
 import {assertEquals, assertGreater } from 'jsr:@std/assert'
 import { describe, it } from "jsr:@std/testing/bdd";
 import QueryBuilder from '../core/db/QueryBuilder.ts';
-import Data from './mock_data/sample_data_1.ts'
-import JSONDBAdapter from '../core/db/JSONDbAdapter.ts';
-import {QuerySchema} from '../types/query_builder_types.ts';
 import {make_mock_json_db_adapter} from '../core/utility/test.ts';
 
 const JSONDBAdapterProxy = make_mock_json_db_adapter()

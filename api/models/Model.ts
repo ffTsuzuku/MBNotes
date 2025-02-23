@@ -87,7 +87,7 @@ export default abstract class  BaseModel {
 		if (!ROOT_DIR) {
 			throw new Error('Please define ROOT_DIR in env')
 		}
-		const PATH =  ROOT_DIR + '/api/db/db.json'
+		const PATH =  ROOT_DIR + '/db/db.json'
 		const file = fs.readFileSync(PATH)
 		return JSON.parse(file.toString())
 	}
@@ -104,7 +104,7 @@ export default abstract class  BaseModel {
 		if (!ROOT_DIR) {
 			throw new Error('Please define ROOT_DIR in env')
 		}
-		const PATH =  ROOT_DIR + '/api/db/db.json'
+		const PATH =  ROOT_DIR + '/db/db.json'
 		fs.writeFileSync(PATH, JSON.stringify(db))
 	}
 
