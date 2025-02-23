@@ -4,14 +4,7 @@ import {DateFormat} from '../types/types.ts'
 import dayjs from 'dayjs'
 import Log from '../core/utility/Log.ts'
 import QueryBuilder from '../core/db/QueryBuilder.ts'
-
-export interface TableSchema {
-	records: any[]
-	fields: {name: string, type: string}[]
-	last_key: number
-}
-
-export type FileDB = Record<string, TableSchema>
+import { JSONTableSchema, JSONFileDB } from '../types/db_types.ts'
 
 export type Cast = Record<string, {get?:Function, set?:Function}>
 
@@ -88,7 +81,8 @@ export default abstract class  BaseModel {
 	}
 
 	//stores the entire db file into memory
-	protected  static get_db(): FileDB {
+	// @todo: Delete this once added EloquentQuery class created
+	protected  static get_db(): JSONFileDB {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
 		if (!ROOT_DIR) {
 			throw new Error('Please define ROOT_DIR in env')
@@ -99,11 +93,13 @@ export default abstract class  BaseModel {
 	}
 
 	//stores an entire table into memory
-	protected  static get_table(): TableSchema {
+	// @todo: Delete this once added EloquentQuery class created
+	protected  static get_table(): JSONTableSchema {
 		return this.get_db()[this.table_name()] ?? []
 	}
 
-	private static update_db(db: FileDB)  {
+	// @todo: Delete this once added EloquentQuery class created
+	private static update_db(db: JSONFileDB)  {
 		const ROOT_DIR = process.env.APP_ROOT_DIR 
 		if (!ROOT_DIR) {
 			throw new Error('Please define ROOT_DIR in env')
@@ -113,6 +109,7 @@ export default abstract class  BaseModel {
 	}
 
 	//get all the records in a table
+	// @todo: Delete this once added EloquentQuery class created
 	static all(): BaseModel[] {
 		const table = this.get_table()
 		const records = table.records

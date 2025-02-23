@@ -53,3 +53,10 @@ export type WhereClause = {
 	value?: string|number|(string|number)[],
 	boolean?: "and" | "or"
 }
+
+export type QuerySchema = {
+	table: string,
+	columns: string[],
+	wheres: WhereClause[],
+}
+
