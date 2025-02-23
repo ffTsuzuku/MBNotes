@@ -15,12 +15,11 @@ export default class JSONDBAdapter extends DBAdapter {
 
 	//stores the entire db file into memory
 	public get_db(): JSONFileDB {
-		const ROOT_DIR = process.env.APP_ROOT_DIR 
-		if (!ROOT_DIR) {
+		const DB = process.env.DB_DATABASE
+		if (!DB) {
 			throw new Error('Please define ROOT_DIR in env')
 		}
-		const PATH =  ROOT_DIR + '/db/db.json'
-		const file = fs.readFileSync(PATH)
+		const file = fs.readFileSync(DB)
 		return JSON.parse(file.toString())
 	}
 
