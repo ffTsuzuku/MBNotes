@@ -231,10 +231,19 @@ export default class JSONDBAdapter extends DBAdapter {
 			}
 			if (operator === 'rlike') {
 				[db_val, query_val] = this.standardize_values(
-					record[column], value, {case_sensitive: true}
+					record[column], value, 
 				)
 				return this.perform_like(
 					db_val, query_val, {rlike: true}
+				)
+			}
+
+			if (operator === 'not rlike') {
+				[db_val, query_val] = this.standardize_values(
+					record[column], value, 
+				)
+				return this.perform_like(
+					db_val, query_val, {rlike: true, not_like: true}
 				)
 			}
 

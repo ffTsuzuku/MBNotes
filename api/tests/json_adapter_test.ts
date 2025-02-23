@@ -210,3 +210,33 @@ describe({name: 'test rlike where clause', ignore: false}, () => {
 		assertEquals(titles_ending_with_apple.length, 1)
 	})
 })
+
+describe({name: 'test not rlike where clause', ignore: false}, () => {
+	it({name: 'test starts with'}, () => {
+		const records = QueryBuilder
+			.where('title', 'not rlike', '^Apple').from('tickets').get()
+
+		const titles_starting_with_apple = records.filter(record => {
+			const words_in_title = record.title.split(' ')
+			const [first_word] = words_in_title
+			const first_word_starts = first_word.slice(0, first_word.length)
+			return first_word_starts !== 'Apple'
+		})
+		assertGreater(titles_starting_with_apple.length, 0)
+	})
+
+	it({name: 'test ends  with'}, () => {
+		const records = QueryBuilder.where('title', 'not rlike', 'apple$')
+			.from('tickets').get()
+
+		const titles_ending_with_apple = records.filter(record => {
+			const words_in_title = record.title.split(' ')
+			const last_word = words_in_title[words_in_title.length -1]
+			const last_word_ends_with = last_word.slice(
+				last_word.length  - 'apple'.length, last_word.length + 1
+			)
+			return last_word_ends_with !== "apple"
+		})
+		assertGreater(titles_ending_with_apple.length, 0)
+	})
+})
