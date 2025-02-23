@@ -1,10 +1,22 @@
 import {assertEquals, assertGreater } from 'jsr:@std/assert'
 import { describe, it } from "jsr:@std/testing/bdd";
 import QueryBuilder from '../core/db/QueryBuilder.ts';
+import Data from './mock_data/sample_data_1.ts'
+
+const QueryBuilderProxy = new Proxy(QueryBuilder, {
+	get: ((target, prop) => {
+		if (prop === 'get_table') {
+			Data
+		} else {
+			//@ts-ignore
+			return target[prop]
+		}
+	})
+})
 
 describe({name: 'like binary where operator', ignore: false}, () => {
 	it({name: 'test % at start with bad case', ignore: false}, () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like binary', '%aPPle')
 			.get()
 
@@ -12,7 +24,7 @@ describe({name: 'like binary where operator', ignore: false}, () => {
 	})
 
 	it({name: 'test % at start with matching case', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'like binary', '%Apple')
 			.get()
 
@@ -20,7 +32,7 @@ describe({name: 'like binary where operator', ignore: false}, () => {
 	})
 
 	it('test % at end with bad case', () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like binary', 'UpdAte%')
 			.get()
 
@@ -28,7 +40,7 @@ describe({name: 'like binary where operator', ignore: false}, () => {
 	})
 
 	it('test % at end with matching case', () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like binary', 'Apple%')
 			.get()
 
@@ -36,7 +48,7 @@ describe({name: 'like binary where operator', ignore: false}, () => {
 	})
 
 	it('test word wrapped by %', () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like binary', '%apple%')
 			.get()
 
@@ -44,7 +56,7 @@ describe({name: 'like binary where operator', ignore: false}, () => {
 	})
 
 	it('test word wrapped by % with bad case', () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like binary', '%phone%')
 			.get()
 
@@ -54,7 +66,7 @@ describe({name: 'like binary where operator', ignore: false}, () => {
 
 describe({name: 'test like where clause', ignore: false}, () => {
 	it({name: 'test % is first char', ignore: false}, () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like', '%tEst')
 			.get()
 
@@ -62,7 +74,7 @@ describe({name: 'test like where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test % is last char', ignore: false}, () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like', 'apple%')
 			.get()
 
@@ -70,7 +82,7 @@ describe({name: 'test like where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test string wrapped in % with bad case', ignore: false}, () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like', '%phone%')
 			.get()
 
@@ -78,7 +90,7 @@ describe({name: 'test like where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test string wrapped in % with right case', ignore: false}, () => {
-		const record = QueryBuilder.from('tickets')
+		const record = QueryBuilderProxy.from('tickets')
 			.where('title', 'like', '%phone%')
 			.get()
 
@@ -86,11 +98,11 @@ describe({name: 'test like where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test %%', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'like', '%%')
 			.get()
 		
-		const all_records = QueryBuilder.from('tickets') .get()
+		const all_records = QueryBuilderProxy.from('tickets') .get()
 
 		assertEquals(records.length, all_records.length)
 	})
@@ -98,7 +110,7 @@ describe({name: 'test like where clause', ignore: false}, () => {
 
 describe({name: 'test not like where clause', ignore: false}, () => {
 	it({name: 'test % is first char', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'not like', '%tEst%')
 			.get()
 
@@ -110,7 +122,7 @@ describe({name: 'test not like where clause', ignore: false}, () => {
 	})
 	
 	it({name: 'test empty string not like', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'not like', '')
 			.get()
 
@@ -123,7 +135,7 @@ describe({name: 'test not like where clause', ignore: false}, () => {
 	
 	
 	it({name: 'test properly excluding records with matching %substring%', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'not like', '%test%')
 			.get()
 
@@ -135,7 +147,7 @@ describe({name: 'test not like where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test %% should return nothing', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'not like', '%%')
 			.get()
 
@@ -143,7 +155,7 @@ describe({name: 'test not like where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test %% should return nothing', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'not like', '%%')
 			.get()
 
@@ -151,7 +163,7 @@ describe({name: 'test not like where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test %<string>', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'not like', '%stuff')
 			.get()
 
@@ -166,7 +178,7 @@ describe({name: 'test not like where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test <string>%', ignore: false}, () => {
-		const records = QueryBuilder.from('tickets')
+		const records = QueryBuilderProxy.from('tickets')
 			.where('title', 'not like', 'stuff%')
 			.get()
 
@@ -183,7 +195,7 @@ describe({name: 'test not like where clause', ignore: false}, () => {
 
 describe({name: 'test rlike where clause', ignore: false}, () => {
 	it({name: 'test starts with'}, () => {
-		const records = QueryBuilder
+		const records = QueryBuilderProxy
 			.where('title', 'rlike', '^Apple').from('tickets').get()
 
 		const titles_starting_with_apple = records.filter(record => {
@@ -196,7 +208,7 @@ describe({name: 'test rlike where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test ends  with'}, () => {
-		const records = QueryBuilder.where('title', 'rlike', 'apple$')
+		const records = QueryBuilderProxy.where('title', 'rlike', 'apple$')
 			.from('tickets').get()
 
 		const titles_ending_with_apple = records.filter(record => {
@@ -213,7 +225,7 @@ describe({name: 'test rlike where clause', ignore: false}, () => {
 
 describe({name: 'test not rlike where clause', ignore: false}, () => {
 	it({name: 'test starts with'}, () => {
-		const records = QueryBuilder
+		const records = QueryBuilderProxy
 			.where('title', 'not rlike', '^Apple').from('tickets').get()
 
 		const titles_starting_with_apple = records.filter(record => {
@@ -226,7 +238,7 @@ describe({name: 'test not rlike where clause', ignore: false}, () => {
 	})
 
 	it({name: 'test ends  with'}, () => {
-		const records = QueryBuilder.where('title', 'not rlike', 'apple$')
+		const records = QueryBuilderProxy.where('title', 'not rlike', 'apple$')
 			.from('tickets').get()
 
 		const titles_ending_with_apple = records.filter(record => {
