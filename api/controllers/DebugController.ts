@@ -4,11 +4,5 @@ import QueryBuilder from "../core/db/QueryBuilder.ts";
 
 export default class DebugController {
 	static async index(request: Request, response: Response) {
-		const result = QueryBuilder.
-			from("tickets")
-			.select(['id', 'title'])
-			.get()
-
-		response.json(result)
 	}
 }

@@ -97,21 +97,40 @@ export default class JSONDBAdapter extends DBAdapter {
 	private perform_like(
 		db_val: string,
 		query_val: string,
-		case_sensitive: boolean = false,
+		flags: {case_sensitive?: boolean, not_like?: boolean} = {
+			case_sensitive: false, not_like: false
+		}
 	): boolean {
-		if (query_val === '' && (query_val != '' && query_val != null)) {
+		const {case_sensitive = false, not_like = false} = flags
+
+		if (query_val === '' && (db_val != '' && db_val != null)) {
+			if (not_like) {
+				return true
+			}
 			return false 
 		}
-		if (query_val === '' && (query_val === ''|| query_val === null)) {
+		if (query_val === '' && (db_val === ''|| db_val === null)) {
+			if (not_like) {
+				return false
+			}
 			return true 
 		}
 		if (query_val === '%%') {
+			if (not_like) {
+				return false
+			}
 			return true
 		}
 		if (!query_val.includes('%')) {
+			if (not_like) {
+				return db_val !== query_val
+			}
 			return db_val === query_val
 		}
 		if (query_val.startsWith('%') && query_val.endsWith('%')) {
+			if (not_like) {
+				return false
+			}
 			const sanitized_query_val = query_val.slice(1, query_val.length - 1)
 			return db_val.includes(sanitized_query_val)
 		}
@@ -145,8 +164,11 @@ export default class JSONDBAdapter extends DBAdapter {
 		if (query_val.endsWith("%")) {
 			safe_regex_string = starts_with_match + safe_regex_string
 		}
-		const flags = case_sensitive ? '' : 'i'
-		const regex = new RegExp(safe_regex_string, flags)
+		const regex_flags = case_sensitive ? '' : 'i'
+		const regex = new RegExp(safe_regex_string, regex_flags)
+		if (not_like) {
+			return !regex.test(db_val)
+		}
 		return regex.test(db_val)
 	}
 
@@ -186,11 +208,16 @@ export default class JSONDBAdapter extends DBAdapter {
 			if (operator === 'like') {
 				return this.perform_like(db_val, query_val)
 			}
+			if (operator === 'not like') {
+				return this.perform_like(db_val, query_val, {not_like: true})
+			}
 			if (operator === 'like binary') {
 				[db_val, query_val] = this.standardize_values(
 					record[column], value, {case_sensitive: true}
 				)
-				return this.perform_like(db_val, query_val, true)
+				return this.perform_like(
+					db_val, query_val, {case_sensitive: true}
+				)
 			}
 
 			throw new Error('Unsupported operator type')

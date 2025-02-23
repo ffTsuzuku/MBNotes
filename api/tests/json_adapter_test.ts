@@ -52,7 +52,7 @@ describe({name: 'like binary where operator', ignore: false}, () => {
 	})
 })
 
-describe({name: 'test like where clause', ignore: true}, () => {
+describe({name: 'test like where clause', ignore: false}, () => {
 	it({name: 'test % is first char', ignore: false}, () => {
 		const record = QueryBuilder.from('tickets')
 			.where('title', 'like', '%tEst')
@@ -83,5 +83,100 @@ describe({name: 'test like where clause', ignore: true}, () => {
 			.get()
 
 		assertEquals(record.length, 1)
+	})
+
+	it({name: 'test %%', ignore: false}, () => {
+		const records = QueryBuilder.from('tickets')
+			.where('title', 'like', '%%')
+			.get()
+		
+		const all_records = QueryBuilder.from('tickets') .get()
+
+		assertEquals(records.length, all_records.length)
+	})
+})
+
+describe({name: 'test not like where clause', ignore: false}, () => {
+	it({name: 'test % is first char', ignore: false}, () => {
+		const records = QueryBuilder.from('tickets')
+			.where('title', 'not like', '%tEst%')
+			.get()
+
+		const tickets_with_test_text = records.filter(record => {
+			return (record.title as string).toLowerCase().includes('test')
+		})
+
+		assertEquals(tickets_with_test_text.length, 0)
+	})
+	
+	it({name: 'test empty string not like', ignore: false}, () => {
+		const records = QueryBuilder.from('tickets')
+			.where('title', 'not like', '')
+			.get()
+
+		const tickets_with_empty_text = records.filter(record => {
+			return (record.title as string) === ''
+		})
+
+		assertEquals(tickets_with_empty_text.length, 0)
+	})
+	
+	
+	it({name: 'test properly excluding records with matching %substring%', ignore: false}, () => {
+		const records = QueryBuilder.from('tickets')
+			.where('title', 'not like', '%test%')
+			.get()
+
+		const tickets_with_test_text = records.filter(record => {
+			return (record.title as string).toLowerCase().includes('test')
+		})
+
+		assertEquals(tickets_with_test_text.length, 0)
+	})
+
+	it({name: 'test %% should return nothing', ignore: false}, () => {
+		const records = QueryBuilder.from('tickets')
+			.where('title', 'not like', '%%')
+			.get()
+
+		assertEquals(records.length, 0)
+	})
+
+	it({name: 'test %% should return nothing', ignore: false}, () => {
+		const records = QueryBuilder.from('tickets')
+			.where('title', 'not like', '%%')
+			.get()
+
+		assertEquals(records.length, 0)
+	})
+
+	it({name: 'test %<string>', ignore: false}, () => {
+		const records = QueryBuilder.from('tickets')
+			.where('title', 'not like', '%stuff')
+			.get()
+
+		const tickets_ending_with_stuff = records.filter(record => {
+			const words_in_title = (record.title as string).split(' ')
+			const last_word_in_title = words_in_title[words_in_title.length - 1]
+
+			return last_word_in_title.toLowerCase() === 'stuff'
+		})
+
+		assertEquals(tickets_ending_with_stuff.length, 0)
+	})
+
+	it({name: 'test <string>%', ignore: false}, () => {
+		const records = QueryBuilder.from('tickets')
+			.where('title', 'not like', 'stuff%')
+			.get()
+
+		const tickets_ending_with_stuff = records.filter(record => {
+			const words_in_title = (record.title as string).split(' ')
+			const first_word_in_title = words_in_title[0]
+
+			return first_word_in_title.toLowerCase() === 'stuff'
+		})
+
+		assertEquals(tickets_ending_with_stuff.length, 0)
 	})
 })
