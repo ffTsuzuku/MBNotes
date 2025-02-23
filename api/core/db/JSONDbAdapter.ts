@@ -97,37 +97,41 @@ export default class JSONDBAdapter extends DBAdapter {
 	private perform_like(
 		db_val: string,
 		query_val: string,
-		flags: {case_sensitive?: boolean, not_like?: boolean} = {
-			case_sensitive: false, not_like: false
+		flags: {
+			case_sensitive?: boolean,
+			not_like?: boolean,
+			rlike?: boolean
+		} = {
+			case_sensitive: false, not_like: false, rlike: false
 		}
 	): boolean {
-		const {case_sensitive = false, not_like = false} = flags
+		const {case_sensitive = false, not_like = false, rlike = false} = flags
 
-		if (query_val === '' && (db_val != '' && db_val != null)) {
+		if (!rlike && query_val === '' && (db_val != '' && db_val != null)) {
 			if (not_like) {
 				return true
 			}
 			return false 
 		}
-		if (query_val === '' && (db_val === ''|| db_val === null)) {
+		if (!rlike && query_val === '' && (db_val === ''|| db_val === null)) {
 			if (not_like) {
 				return false
 			}
 			return true 
 		}
-		if (query_val === '%%') {
+		if (!rlike && query_val === '%%') {
 			if (not_like) {
 				return false
 			}
 			return true
 		}
-		if (!query_val.includes('%')) {
+		if (!rlike && !query_val.includes('%')) {
 			if (not_like) {
 				return db_val !== query_val
 			}
 			return db_val === query_val
 		}
-		if (query_val.startsWith('%') && query_val.endsWith('%')) {
+		if (!rlike && query_val.startsWith('%') && query_val.endsWith('%')) {
 			if (not_like) {
 				return false
 			}
@@ -141,37 +145,43 @@ export default class JSONDBAdapter extends DBAdapter {
 		const starts_with_match = '^'
 		const ends_with_match = '$'
 
-		let safe_regex_string = ''
-		for (let i = 0; i < (query_val as string).length; i++) {
-			const char = query_val.charAt(i)
-			const next = query_val.charAt(i + 1)
-			const prev = query_val.charAt(i - 1)
+		let safe_regex_string = rlike ? query_val : ''
+		if (!rlike) {
+			for (let i = 0; i < (query_val as string).length; i++) {
+				const char = query_val.charAt(i)
+				const next = query_val.charAt(i + 1)
+				const prev = query_val.charAt(i - 1)
 
-			if (special_regex_chars.has(char)) {
-				safe_regex_string += `${escape_char}${char}`
-			} else if (char === '%' && prev && next) {
-				safe_regex_string += zero_or_more_match
-			} else if (char == '%') {
-				// remove the percents
-				continue
-			} else {
-				safe_regex_string += char
+				if (special_regex_chars.has(char)) {
+					safe_regex_string += `${escape_char}${char}`
+				} else if (char === '%' && prev && next) {
+					safe_regex_string += zero_or_more_match
+				} else if (char == '%') {
+					// remove the percents
+					continue
+				} else {
+					safe_regex_string += char
+				}
 			}
-		}
-		if (query_val.startsWith("%")) {
-			safe_regex_string = safe_regex_string + ends_with_match
-		}
-		if (query_val.endsWith("%")) {
-			safe_regex_string = starts_with_match + safe_regex_string
+			if (query_val.startsWith("%")) {
+				safe_regex_string = safe_regex_string + ends_with_match
+			}
+			if (query_val.endsWith("%")) {
+				safe_regex_string = starts_with_match + safe_regex_string
+			}
 		}
 		const regex_flags = case_sensitive ? '' : 'i'
 		const regex = new RegExp(safe_regex_string, regex_flags)
 		if (not_like) {
 			return !regex.test(db_val)
 		}
+		//console.log({regex_flags, safe_regex_string, db_val, not_like, regex})
 		return regex.test(db_val)
 	}
 
+	//@todo: we need to make it so that all functions called take in a new 
+	//type called StandardizedValue which has properties. 
+	// {original_value, standardized_value}
 	private apply_basic_where(
 		original_records: Record<string, any>[],
 		records: Record<string, any>[],
@@ -217,6 +227,14 @@ export default class JSONDBAdapter extends DBAdapter {
 				)
 				return this.perform_like(
 					db_val, query_val, {case_sensitive: true}
+				)
+			}
+			if (operator === 'rlike') {
+				[db_val, query_val] = this.standardize_values(
+					record[column], value, {case_sensitive: true}
+				)
+				return this.perform_like(
+					db_val, query_val, {rlike: true}
 				)
 			}
 
