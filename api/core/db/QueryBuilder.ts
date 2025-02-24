@@ -12,10 +12,10 @@ export default class QueryBuilder {
 	private db_adapter: DBAdapter 
 	private columns: string[] = []
 	private _wheres: WhereClause[] = []
-	private _table: string|undefined
+	private _table_name: string|undefined
 
 	constructor(table?: string, adapter?: DBAdapter) {
-		this._table = table
+		this._table_name = table
 		// @todo: make sure we make this use dependency injection
 		// we check env what db type we using and set adapter accordingly
 		this.db_adapter = adapter ? adapter : new JSONDBAdapter()
@@ -25,13 +25,27 @@ export default class QueryBuilder {
 		return new QueryBuilder().from(table)
 	}
 
+	/**
+	 * Alias to static from to be laravel compliant
+	 * */
+	static table (table: string): QueryBuilder {
+		return new QueryBuilder().from(table)
+	}
+
 	from (table: string): QueryBuilder {
-		this._table = table
+		this._table_name = table
 		return this
 	}
 
-	get table (): string|undefined {
-		return this._table
+	/*
+	 * Alias to from to be laravel compliant
+	 * */
+	table(table: string): QueryBuilder {
+		return this.from(table)
+	}
+
+	get table_name (): string|undefined {
+		return this._table_name
 	}
 
 	get wheres(): WhereClause[] {
@@ -333,9 +347,10 @@ export default class QueryBuilder {
 
 	generate_schema(): QuerySchema {
 		return {
-			table: this.table ?? '',
+			table: this.table_name ?? '',
 			columns: deep_copy(this.columns),
 			wheres: deep_copy(this.wheres),
 		}
 	}
 }
+
