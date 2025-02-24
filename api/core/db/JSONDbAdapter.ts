@@ -34,6 +34,17 @@ export default class JSONDBAdapter extends DBAdapter {
 		const { table: table_name, wheres, columns} = query_schema
 		const table =  this.get_table(table_name)
 		let records = table.records
+		const fields = new Set(Object.keys(table.fields))
+
+		for (const column of columns) {
+			if (!fields.has(column)) {
+				throw new Error(
+					`Field ${column} does not exist on table ${table_name}`
+				)
+			}
+		}
+
+
 		//apply joins
 		
 		//apply wheres
@@ -65,7 +76,7 @@ export default class JSONDBAdapter extends DBAdapter {
 
 		standardized_values.forEach((value, index) => {
 			const is_date = DateTime.fromISO(value as string).isValid
-			const is_number = !isNaN(Number(value)) 
+			const is_number = value !== null && !isNaN(Number(value)) 
 			const is_string = typeof value === 'string'
 			if (is_date) {
 				standardized_values[index] = DateTime.fromISO(
@@ -103,6 +114,13 @@ export default class JSONDBAdapter extends DBAdapter {
 	): boolean {
 		const {case_sensitive = false, not_like = false, rlike = false} = flags
 
+		if (!rlike && typeof query_val === 'number') {
+			if (not_like) {
+				return db_val !== query_val
+			}
+			console.log({db_val, query_val})
+			return db_val === query_val
+		}
 		if (!rlike && query_val === '' && (db_val != '' && db_val != null)) {
 			if (not_like) {
 				return true
@@ -132,7 +150,7 @@ export default class JSONDBAdapter extends DBAdapter {
 				return false
 			}
 			const sanitized_query_val = query_val.slice(1, query_val.length - 1)
-			return db_val.includes(sanitized_query_val)
+			return db_val?.includes(sanitized_query_val)
 		}
 
 		const special_regex_chars = new Set(['.', '^', '$', '*', '+', '?', '(', ')', '[', ']', '{', '}', '\\', '|', '/']);
@@ -268,6 +286,35 @@ export default class JSONDBAdapter extends DBAdapter {
 		})
 	}
 
+	private apply_where_in_or_not_in(
+		original_records: JSONDBRecord[],
+		records: JSONDBRecord[],
+		where_clause: WhereClause,
+	): JSONDBRecord [] {
+		const { boolean, column, type, value } = where_clause
+
+		if (!column) {
+			throw new Error('Please specify column for whereIn clause')
+		}
+
+		let records_to_filter = boolean === 'or'  ? original_records : records
+		if (!Array.isArray(value)) {
+			throw new Error(`${type} clause expects an array value`)
+		}
+		const value_set = new Set(value)
+		return records_to_filter.filter(record => {
+			if (
+				typeof record[column] !== 'number' &&
+				typeof record[column]!== 'string'
+			) {
+				return false
+			}
+			if (type === 'In') {
+				return value_set.has(record[column])
+			}
+			return !value_set.has(record[column])
+		})
+	}
 
 	protected apply_wheres(
 		records: JSONDBRecord[], wheres: WhereClause[]
@@ -276,17 +323,26 @@ export default class JSONDBAdapter extends DBAdapter {
 
 		for (const where of wheres) {
 			const records_to_filter = result.length ? result : records
+			let filter_result: JSONDBRecord[] = []
 			if (where.type === 'Basic') {
-				result.push(
-					...this.apply_basic_where(records, records_to_filter, where)
+				filter_result = this.apply_basic_where(
+					records, records_to_filter, where
 				)
 			} else if (where.type === 'Null' || where.type === 'NotNull') {
-				result.push(
-					...this.apply_where_null_or_not_null(
-						records, records_to_filter, where
-					)
+				filter_result = this.apply_where_null_or_not_null(
+					records, records_to_filter, where
 				)
-			} 		
+			} else if (where.type === 'In') {
+				filter_result = this.apply_where_in_or_not_in(
+					records, records_to_filter, where
+				)
+			}
+
+			if (where.boolean === 'or') {
+				result.push(...filter_result)
+			} else {
+				result = filter_result
+			}
 		}
 		return result
 	}
