@@ -50,7 +50,7 @@ export type WhereClause = {
 	query?: QueryBuilder | (() => QueryBuilder),
 	column?: string,
 	operator?: Operator,
-	value?: string|number|(string|number)[],
+	value?: string|number|Array<string|number>,
 	boolean?: "and" | "or"
 }
 
