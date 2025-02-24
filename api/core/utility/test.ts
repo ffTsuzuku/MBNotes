@@ -11,7 +11,7 @@ import { JSONFileDB, JSONTableSchema } from "../../types/db_types.ts";
  * @todo: add support for mocking inserts
  * */
 export const make_mock_json_db_adapter = (
-	data_set: Record<string, JSONTableSchema> = default_data
+	data_set: Record<string, JSONTableSchema> = default_data as JSONFileDB
 ) => {
 	const adapter = new JSONDBAdapter()
 	return  new Proxy(adapter, {

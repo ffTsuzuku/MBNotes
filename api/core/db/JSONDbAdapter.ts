@@ -2,7 +2,7 @@ import QueryBuilder from "./QueryBuilder.ts";
 import fs from 'node:fs'
 import { DBAdapter } from "./DBAdapter.ts";
 import { QuerySchema, WhereClause } from "../../types/query_builder_types.ts";
-import { JSONFileDB, JSONTableSchema } from "../../types/db_types.ts";
+import { JSONDBRecord, JSONFileDB, JSONTableSchema } from "../../types/db_types.ts";
 import {DateTime} from 'luxon'
 
 interface StandardizationFlags {
@@ -30,7 +30,7 @@ export default class JSONDBAdapter extends DBAdapter {
 		return this.get_db()[table_name] ?? []
 	}
 
-	get(query_schema: QuerySchema): Record<string, any>[] {
+	get(query_schema: QuerySchema): JSONDBRecord[] {
 		const { table: table_name, wheres, columns} = query_schema
 		const table =  this.get_table(table_name)
 		let records = table.records
@@ -179,10 +179,10 @@ export default class JSONDBAdapter extends DBAdapter {
 	//type called StandardizedValue which has properties. 
 	// {original_value, standardized_value}
 	private apply_basic_where(
-		original_records: Record<string, any>[],
-		records: Record<string, any>[],
+		original_records: JSONDBRecord[],
+		records: JSONDBRecord[],
 		where_clause: WhereClause,
-	): Record<string, any>[] {
+	): JSONDBRecord[] {
 		const { column, operator, value, boolean } = where_clause
 		if (!column || !operator || !value) {
 			throw Error(`Trying to apply a where on ${column}`)
@@ -251,7 +251,7 @@ export default class JSONDBAdapter extends DBAdapter {
 		original_records: Record<string, any>[],
 		records: Record<string, any>[],
 		where_clause: WhereClause,
-	): Record<string, any>[] {
+	): JSONDBRecord[] {
 		const { column, boolean, type} = where_clause
 		if (!column) {
 			throw Error(`Trying to apply a where null but column isn't specified`) 
@@ -268,8 +268,9 @@ export default class JSONDBAdapter extends DBAdapter {
 		})
 	}
 
+
 	protected apply_wheres(
-		records: Record<string, any>[], wheres: WhereClause[]
+		records: JSONDBRecord[], wheres: WhereClause[]
 	) {
 		let result: Record<string, any>[]  = []
 
@@ -285,7 +286,7 @@ export default class JSONDBAdapter extends DBAdapter {
 						records, records_to_filter, where
 					)
 				)
-			}
+			} 		
 		}
 		return result
 	}
