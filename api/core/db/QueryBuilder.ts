@@ -77,7 +77,7 @@ export default class QueryBuilder {
 	static where(
 		column: string,
 		operatorOrValue: Operator | string | number,
-		potentialValue?: string|number,
+		potentialValue?: string|number|null,
 		boolean: ("and" | "or") = 'and'
 	): QueryBuilder {
 		return new QueryBuilder().where(
@@ -88,14 +88,15 @@ export default class QueryBuilder {
 	where(
 		column: string,
 		operatorOrValue: Operator | string | number,
-		potentialValue?: string|number,
+		potentialValue?: string|number|null,
 		boolean: ("and" | "or") = 'and'
 	): QueryBuilder {
 		// in laravel the value param is optional and when not used 
 		// defaults the comparision operator to =
 		const operator = potentialValue !== undefined ? 
 			operatorOrValue as Operator : '='
-		let value = potentialValue ? potentialValue : operatorOrValue
+		let value = potentialValue !== undefined ? potentialValue :
+			operatorOrValue
 		
 		this._wheres.push({
 			type: "Basic",
