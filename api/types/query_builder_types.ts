@@ -47,10 +47,10 @@ export type WhereType =
 
 export type WhereClause = {
 	type: WhereType,
-	query?: QueryBuilder | (() => QueryBuilder),
+	query?: QueryBuilder | (() => QueryBuilder), // nested query
 	column?: string,
 	operator?: Operator,
-	value?: string|number|Array<string|number>,
+	value?: string|number|null|Array<string|number>,
 	boolean?: "and" | "or"
 }
 

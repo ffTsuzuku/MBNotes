@@ -1,4 +1,4 @@
-import {assertEquals, assertGreater, assertThrows } from 'jsr:@std/assert'
+import {assertEquals, assertGreater, assertThrows, assert } from 'jsr:@std/assert'
 import { describe, it } from "jsr:@std/testing/bdd";
 import QueryBuilder from '../core/db/QueryBuilder.ts';
 import {make_mock_json_db_adapter, make_mock_query} from '../core/utility/test.ts';
@@ -440,3 +440,48 @@ Deno.test({
 	assertThrows(fn)
 })
 
+describe("<=> Operator Tests", () => {
+    it("should return a record when comparing exact string values", () => {
+        const QueryBuilderProxy = new QueryBuilder('tickets', JSONDBAdapterProxy);
+        const records = QueryBuilderProxy.from('tickets')
+            .where('title', '<=>', 'Milk')
+            .get();
+
+        assertEquals(records.length, 1);
+        assertEquals(records[0].id, 45);
+    });
+
+    it("should return all records where assigned_to is null", () => {
+        const QueryBuilderProxy = new QueryBuilder('tickets', JSONDBAdapterProxy);
+        const records = QueryBuilderProxy.from('tickets')
+            .where('assigned_to', '<=>', null)
+            .get();
+
+        assertEquals(records.length, 5); // Expecting IDs: 43, 44, 45, 46, 47
+        assert(records.some(r => r.id === 43));
+        assert(records.some(r => r.id === 44));
+        assert(records.some(r => r.id === 45));
+        assert(records.some(r => r.id === 46));
+        assert(records.some(r => r.id === 47));
+    });
+
+    it("should return an empty array when there are no matches", () => {
+        const QueryBuilderProxy = new QueryBuilder('tickets', JSONDBAdapterProxy);
+        const records = QueryBuilderProxy.from('tickets')
+            .where('title', '<=>', 'Nonexistent')
+            .get();
+
+        assertEquals(records.length, 0);
+    });
+
+    it("should return correct records when comparing non-null values", () => {
+        const QueryBuilderProxy = new QueryBuilder('tickets', JSONDBAdapterProxy);
+        const records = QueryBuilderProxy.from('tickets')
+            .where('assigned_to', '<=>', 'Mark')
+            .get();
+
+        assertEquals(records.length, 2); // Expecting IDs: 1, 2
+        assert(records.some(r => r.id === 1));
+        assert(records.some(r => r.id === 2));
+    });
+});
