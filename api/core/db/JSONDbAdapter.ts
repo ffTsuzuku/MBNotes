@@ -249,7 +249,11 @@ export default class JSONDBAdapter extends DBAdapter {
 					db_val, query_val, {case_sensitive: true}
 				)
 			}
-			if (operator === 'rlike') {
+			if (
+				operator === 'rlike' ||
+				operator === 'similar to' ||
+				operator == 'regexp'
+			) {
 				[db_val, query_val] = this.standardize_values(
 					record[column], value, 
 				)
@@ -258,7 +262,7 @@ export default class JSONDBAdapter extends DBAdapter {
 				)
 			}
 
-			if (operator === 'not rlike') {
+			if (operator === 'not rlike' || operator === 'not similar to') {
 				[db_val, query_val] = this.standardize_values(
 					record[column], value, 
 				)
@@ -266,9 +270,6 @@ export default class JSONDBAdapter extends DBAdapter {
 					db_val, query_val, {rlike: true, not_like: true}
 				)
 			}
-			if (operator === 'ilike') {
-			}
-
 
 			throw new Error('Unsupported operator type')
 		})
