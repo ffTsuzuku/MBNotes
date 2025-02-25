@@ -549,4 +549,22 @@ describe({name: 'test bitwise operators', ignore: false}, () => {
 	}, () => {
 		test_bit_wise('^', 1)
 	})
+	it({
+		name: 'performing bitwise << using a number',
+		ignore: false
+	}, () => {
+		test_bit_wise('<<', 1)
+	})
+	it({
+		name: 'performing bitwise >> using a number',
+		ignore: false
+	}, () => {
+		test_bit_wise('>>', 3)
+	})
+	it({
+		name: 'performing bitwise >> using a number',
+		ignore: false
+	}, () => {
+		test_bit_wise('&~', 3)
+	})
 })
