@@ -46,7 +46,6 @@ export default class JSONDBAdapter extends DBAdapter {
 
 
 		//apply joins
-		
 		//apply wheres
 		if(wheres.length)
 			records = this.apply_wheres(records, wheres)
@@ -202,7 +201,7 @@ export default class JSONDBAdapter extends DBAdapter {
 		where_clause: WhereClause,
 	): JSONDBRecord[] {
 		const { column, operator, value, boolean } = where_clause
-		if (!column || !operator || !value) {
+		if (!column || !operator || value === undefined) {
 			throw Error(`Trying to apply a where on ${column}`)
 		}
 
@@ -212,6 +211,13 @@ export default class JSONDBAdapter extends DBAdapter {
 				record[column], value
 			)
 			if (operator === '=') {
+				// equal operator is not null safe, use <=> operator for that
+				if (db_val === null && query_val === null) {
+					return false
+				}
+				return db_val === query_val
+			}
+			if (operator === '<=>') {
 				return db_val === query_val
 			}
 			if (operator === '<') {
@@ -260,6 +266,7 @@ export default class JSONDBAdapter extends DBAdapter {
 					db_val, query_val, {rlike: true, not_like: true}
 				)
 			}
+
 
 			throw new Error('Unsupported operator type')
 		})
