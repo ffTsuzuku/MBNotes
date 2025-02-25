@@ -238,7 +238,7 @@ export default class JSONDBAdapter extends DBAdapter {
 			if (operator === 'like' || operator === 'ilike') {
 				return this.perform_like(db_val, query_val)
 			}
-			if (operator === 'not like') {
+			if (operator === 'not like' || operator === 'not ilike') {
 				return this.perform_like(db_val, query_val, {not_like: true})
 			}
 			if (operator === 'like binary') {
@@ -262,7 +262,11 @@ export default class JSONDBAdapter extends DBAdapter {
 				)
 			}
 
-			if (operator === 'not rlike' || operator === 'not similar to') {
+			if (
+				operator === 'not rlike' ||
+				operator === 'not similar to' ||
+				operator === 'not regexp'
+			) {
 				[db_val, query_val] = this.standardize_values(
 					record[column], value, 
 				)
