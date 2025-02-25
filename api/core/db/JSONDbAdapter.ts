@@ -117,7 +117,6 @@ export default class JSONDBAdapter extends DBAdapter {
 			if (not_like) {
 				return db_val !== query_val
 			}
-			console.log({db_val, query_val})
 			return db_val === query_val
 		}
 		if (!rlike && query_val === '' && (db_val != '' && db_val != null)) {
@@ -261,7 +260,6 @@ export default class JSONDBAdapter extends DBAdapter {
 					db_val, query_val, {rlike: true}
 				)
 			}
-
 			if (
 				operator === 'not rlike' ||
 				operator === 'not similar to' ||
@@ -273,6 +271,15 @@ export default class JSONDBAdapter extends DBAdapter {
 				return this.perform_like(
 					db_val, query_val, {rlike: true, not_like: true}
 				)
+			}
+			if (operator === '&') {
+				return db_val & query_val
+			}
+			if (operator === '|') {
+				return db_val | query_val
+			}
+			if (operator == '^') {
+				return db_val ^ query_val
 			}
 
 			throw new Error('Unsupported operator type')

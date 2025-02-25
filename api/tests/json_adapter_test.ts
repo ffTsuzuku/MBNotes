@@ -2,6 +2,7 @@ import {assertEquals, assertGreater, assertThrows, assert } from 'jsr:@std/asser
 import { describe, it } from "jsr:@std/testing/bdd";
 import QueryBuilder from '../core/db/QueryBuilder.ts';
 import {make_mock_json_db_adapter, make_mock_query} from '../core/utility/test.ts';
+import {Operator} from '../types/query_builder_types.ts';
 
 const JSONDBAdapterProxy = make_mock_json_db_adapter()
 
@@ -485,3 +486,67 @@ describe("<=> Operator Tests", () => {
         assert(records.some(r => r.id === 2));
     });
 });
+
+describe({name: 'test bitwise operators', ignore: false}, () => {
+	const test_bit_wise = (operator: Operator, value: string|number|null) => {
+		const QueryBuilder = make_mock_query('tickets')
+		const AllBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.where('id', operator, value).get()
+		const all_records = AllBuilder.get()
+
+		const valid_ids = all_records.filter(record => eval(
+			`${record.id} ${operator} ${value}`)
+		).map(record => record.id)
+		const ids_to_verify = records.map(record => record.id)
+
+		const ids_to_verify_set = new Set(ids_to_verify)
+
+		const missing_ids: number[] = []
+		for (const id of valid_ids) {
+			if (!ids_to_verify_set.has(id)) {
+				missing_ids.push(id)
+			}
+		}
+
+		assertEquals(missing_ids.length, 0)
+	}
+
+	it({
+		name: 'performing bitwise & using a number string',
+		ignore: false
+	}, () => {
+		const QueryBuilder = make_mock_query('tickets')
+		const AllBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.where('id', '&', '1').get()
+		const all_records = AllBuilder.get()
+
+		const valid_ids = all_records.filter(record => record.id & 1)
+			.map(record => record.id)
+		const ids_to_verify = records.map(record => record.id)
+
+		const ids_to_verify_set = new Set(ids_to_verify)
+
+		const missing_ids: number[] = []
+		for (const id of valid_ids) {
+			if (!ids_to_verify_set.has(id)) {
+				missing_ids.push(id)
+			}
+		}
+
+		assertEquals(missing_ids.length, 0)
+	})
+
+	it({
+		name: 'performing bitwise | using a number',
+		ignore: false
+	}, () => {
+		test_bit_wise('|', 1)
+	})
+
+	it({
+		name: 'performing bitwise ^ using a number',
+		ignore: false
+	}, () => {
+		test_bit_wise('^', 1)
+	})
+})
