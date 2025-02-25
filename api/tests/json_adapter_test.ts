@@ -351,6 +351,19 @@ describe({name: 'test whereIn clause', ignore: false}, () => {
 
 		assertEquals(tickets_with_wrong_id.length, 3)
 	})
+
+	it({name: 'whereNotIn contains ids it shouldnt', ignore: false}, () => {
+		const QueryBuilder = make_mock_query('tickets')
+		const unwanted_ticket_ids = [1,2,3,9]
+		const records = QueryBuilder.whereNotIn('id', unwanted_ticket_ids).get()
+
+		const id_set = new Set(unwanted_ticket_ids)
+		const tickets_with_wrong_id = records.filter(record => {
+			return id_set.has(record.id)
+		})
+
+		assertEquals(tickets_with_wrong_id.length, 0)
+	})
 })
 
 describe({name: 'test whereNull', ignore: false}, () => {

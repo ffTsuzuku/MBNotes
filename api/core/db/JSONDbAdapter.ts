@@ -44,11 +44,11 @@ export default class JSONDBAdapter extends DBAdapter {
 			}
 		}
 
-
 		//apply joins
 		//apply wheres
-		if(wheres.length)
+		if(wheres.length) {
 			records = this.apply_wheres(records, wheres)
+		}
 
 		//apply limit
 
@@ -376,6 +376,10 @@ export default class JSONDBAdapter extends DBAdapter {
 					records, records_to_filter, where
 				)
 			} else if (where.type === 'In') {
+				filter_result = this.apply_where_in_or_not_in(
+					records, records_to_filter, where
+				)
+			} else if (where.type === 'NotIn') {
 				filter_result = this.apply_where_in_or_not_in(
 					records, records_to_filter, where
 				)
