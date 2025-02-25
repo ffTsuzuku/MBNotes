@@ -235,7 +235,7 @@ export default class JSONDBAdapter extends DBAdapter {
 			if (operator === '!=' || operator === '<>') {
 				return db_val !== query_val
 			}
-			if (operator === 'like') {
+			if (operator === 'like' || operator === 'ilike') {
 				return this.perform_like(db_val, query_val)
 			}
 			if (operator === 'not like') {
@@ -265,6 +265,8 @@ export default class JSONDBAdapter extends DBAdapter {
 				return this.perform_like(
 					db_val, query_val, {rlike: true, not_like: true}
 				)
+			}
+			if (operator === 'ilike') {
 			}
 
 
