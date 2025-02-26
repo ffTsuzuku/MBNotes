@@ -239,65 +239,61 @@ export default class QueryBuilder {
 	}
 	static whereBetween(
 		column: string,
-		min: string|number,
-		max: string|number
+		range: [(string|number), (string|number)]
 	): QueryBuilder {
-		return new QueryBuilder().whereBetween(column, min, max)
+		return new QueryBuilder().whereBetween(column, range)
 	}
 
 	whereBetween(
 		column: string,
-		min: string|number,
-		max: string|number
+		range: [(string|number), (string|number)]
 	): QueryBuilder {
+		const [min, max] = range
 		return this.whereBetweenOrNot(column, min, max, 'Between' )
 	}
 
 	static whereNotBetween(
 		column: string,
-		min: string|number,
-		max: string|number
+		range: [(string|number), (string|number)]
 	): QueryBuilder {
-		return new QueryBuilder().whereNotBetween(column, min, max) 
+		return new QueryBuilder().whereNotBetween(column, range) 
 	}
 
 	whereNotBetween(
 		column: string,
-		min: string|number,
-		max: string|number
+		range: [(string|number), (string|number)]
 	): QueryBuilder {
+		const [min, max] = range
 		return this.whereBetweenOrNot(column, min, max, 'NotBetween' )
 	}
 
 	static orWhereBetween(
 		column: string,
-		min: string|number,
-		max: string|number
+		range: [(string|number), (string|number)]
 	): QueryBuilder {
-		return new QueryBuilder().orWhereBetween(column, min, max)
+		return new QueryBuilder().orWhereBetween(column, range)
 	}
 
 	orWhereBetween(
 		column: string,
-		min: string|number,
-		max: string|number
+		range: [(string|number), (string|number)]
 	): QueryBuilder {
+		const [min, max] = range
 		return this.whereBetweenOrNot(column, min, max, 'Between', 'or')
 	}
 
 	static orWhereNotBetween(
 		column: string,
-		min: string|number,
-		max: string|number
+		range: [(string|number), (string|number)]
 	): QueryBuilder {
-		return new QueryBuilder().orWhereNotBetween(column, min, max) 
+		return new QueryBuilder().orWhereNotBetween(column, range) 
 	}
 
 	orWhereNotBetween(
 		column: string,
-		min: string|number,
-		max: string|number
+		range: [(string|number), (string|number)]
 	): QueryBuilder {
+		const [min, max] = range
 		return this.whereBetweenOrNot(column, min, max, 'NotBetween', 'or')
 	}
 
