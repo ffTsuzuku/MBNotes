@@ -1,8 +1,9 @@
-import {assertEquals, assertGreater, assertThrows, assert } from 'jsr:@std/assert'
+import {assertEquals, assertGreater, assertThrows, assert, assertTrue } from 'jsr:@std/assert'
 import { describe, it } from "jsr:@std/testing/bdd";
 import QueryBuilder from '../core/db/QueryBuilder.ts';
 import {make_mock_json_db_adapter, make_mock_query} from '../core/utility/test.ts';
 import {Operator} from '../types/query_builder_types.ts';
+import QueryBuilder from '../core/db/QueryBuilder.ts';
 
 const JSONDBAdapterProxy = make_mock_json_db_adapter()
 
@@ -579,5 +580,135 @@ describe({name: 'test bitwise operators', ignore: false}, () => {
 		ignore: false
 	}, () => {
 		test_bit_wise('&~', 3)
+	})
+})
+
+describe({name: 'whereBetween/notBetween', ignore: false}, () => {
+	it({name:'id is between 20 and 40',  ignore: false}, () => {
+		const QueryBuilder = make_mock_query('tickets') 
+		const records = QueryBuilder.whereBetween('id', [20, 40]).get()
+
+		const bad_ids = records.filter(
+			record => record.id >=  9 || record.id <= 40
+		)
+
+		assertEquals(bad_ids.length, 0)
+	})
+	it(
+		{name:'id is between 1 and 3 and result contains both',  ignore: false}, 
+		() => {
+			const QueryBuilder = make_mock_query('tickets') 
+			const records = QueryBuilder.whereBetween('id', [1, 3]).get()
+			const ids = new Set(records.map(record => record.id))
+			assertTrue(ids.has(1))
+			assertTrue(ids.has(3))
+		}
+	)
+	it(
+		{name:'created_at is between two dates',  ignore: false}, 
+		() => {
+			const min = '2025-02-17T00:00:00.000Z'
+			const max = '2025-02-18T00:00:00.000Z'
+			const valid_ticket_ids = [1, 2, 3, 7, 8, 42, 43, 44]
+			const QueryBuilder = make_mock_query('tickets') 
+			const records = QueryBuilder.whereBetween('id', [min, max])
+				.get()
+				.map(record => record.id)
+			const result_id_set = new Set(records)
+			const missing_ids = valid_ticket_ids.filter(
+				id => !result_id_set.has(id)
+			)
+
+			assertEquals(missing_ids.length, 0)
+		}
+	)
+	it({name:'between using strings',  ignore: false}, () => {
+		const valid_ticket_ids = [2, 3, 45, 47]
+		const QueryBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.whereBetween('title', ['Apple', 'Milk'])
+			.get().map(record => record.id)
+
+		const result_id_set = new Set(records)
+		const missing_ids = valid_ticket_ids.filter(
+			id => !result_id_set.has(id)
+		)
+
+		assertEquals(missing_ids.length, 0)
+	})
+	it({name:'id between meow and 3',  ignore: false}, () => {
+		const valid_ticket_ids = [1,2,3]
+		const QueryBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.whereBetween('title', ['Meow', 3])
+			.get().map(record => record.id)
+
+		const result_id_set = new Set(records)
+		const missing_ids = valid_ticket_ids.filter(
+			id => !result_id_set.has(id)
+		)
+
+		assertEquals(missing_ids.length, 0)
+	})
+	it({name:'id between 3 and meow',  ignore: false}, () => {
+		const QueryBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.whereBetween('title', [3, "Meow"])
+			.get()
+
+		assertEquals(records.length, 0)
+	})
+	it({name:'id between 1 and meow',  ignore: false}, () => {
+		//no results
+		const QueryBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.whereBetween('title', [1, "Meow"])
+			.get()
+
+		assertEquals(records.length, 0)
+	})
+	it({name:'id between meow and 9meow',  ignore: false}, () => {
+		const valid_ticket_ids = [1,2,3, 7, 8]
+		const QueryBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.whereBetween('title', ['Meow', "9Meow"])
+			.get().map(record => record.id)
+
+		const result_id_set = new Set(records)
+		const missing_ids = valid_ticket_ids.filter(
+			id => !result_id_set.has(id)
+		)
+
+		assertEquals(missing_ids.length, 0)
+	})
+	it({name:'id between A and M',  ignore: false}, () => {
+		const valid_ticket_ids = [1,2,3, 7]
+		const QueryBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.whereBetween('title', ['A', "M"])
+			.get().map(record => record.id)
+
+		const result_id_set = new Set(records)
+		const missing_ids = valid_ticket_ids.filter(
+			id => !result_id_set.has(id)
+		)
+
+		assertEquals(missing_ids.length, 0)
+	})
+	it({name:'id between A and M',  ignore: false}, () => {
+		const valid_ticket_ids = [47]
+		const QueryBuilder = make_mock_query('tickets')
+		const records = QueryBuilder.whereBetween('title', ['A', "M"])
+			.get().map(record => record.id)
+
+		const result_id_set = new Set(records)
+		const missing_ids = valid_ticket_ids.filter(
+			id => !result_id_set.has(id)
+		)
+
+		assertEquals(missing_ids.length, 0)
+	})
+	it({name:'title between A and N',  ignore: false}, () => {
+	})
+	it({name:'id between 5 and 3',  ignore: false}, () => {
+		const QueryBuilder = make_mock_query('tickets')
+		const fn = () => QueryBuilder.whereBetween('id', [5, 2]).get()
+		assertThrows(fn)
+	})
+	it({name:'title between A and 3',  ignore: false}, () => {
 	})
 })
