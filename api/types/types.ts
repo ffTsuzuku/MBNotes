@@ -1,4 +1,5 @@
 export type DateFormat = 
+  | 'YYYY'
   | 'YYYY-MM-DD'
   | 'MM-DD-YYYY'
   | 'DD-MM-YYYY'

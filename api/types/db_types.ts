@@ -1,6 +1,18 @@
+export type FieldTypes = 'number' | 
+	'float' |
+	'string' |
+	'blob' |
+	'binary' |
+	'json' |
+	'date' |
+	'timestamp' |
+	'datetime' |
+	'time' |
+	'year'
+
 export interface JSONTableSchema {
 	records: JSONDBRecord[] 
-	fields: {name: string, type: string}[]
+	fields: {name: string, type: FieldTypes}[]
 	last_key: number
 }
 

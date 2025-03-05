@@ -1,3 +1,5 @@
+import {DateTime} from "luxon"
+
 /**
  * Given a value this function will return a unique copy of that value if the
  * value is not a primative or function
@@ -77,37 +79,79 @@ const deep_copy = <T>(value: T, history = new WeakMap()): T => {
     return value
 }
 
+/**
+ * Given a hex value clean up the hex and return a byte array of the hex value
+ * */
 const parse_hex = (
-	v: string, as_string: boolean = false
-): (number|string|undefined) => {
-	//hex can be in format X' or 0x
-	const regex_pattern = /^(0[xX])[a-fA-F0-9]+$/
-	if (regex_pattern.test(v)) {
-		if (as_string) {
-			const chars: number[] = []
-			const clean_hex = v.slice(2)
-			for (let i = 0; i < clean_hex.length - 1; i+=2) {
-				const byte = clean_hex[i] + clean_hex[i+1]
-				chars.push(parseInt(byte, 16))
-			}
-			return new TextDecoder().decode(new Uint8Array(chars))
-		}
-		return parseInt(v, 16)
+	hex: string|number, format?: 'string'|'number'|undefined 
+): Uint8Array|string|number|undefined  => {
+	if (typeof hex === 'number') {
+		hex = hex.toString()
 	}
-	const binary_string_pattern = /^([xX]')[a-fA-F0-9]+'$/
-	if (binary_string_pattern.test(v)) {
-		const clean_hex = v.slice(2, -1)
-		if (as_string) {
-			const chars: number[] = []
-			for (let i = 0; i < clean_hex.length - 1; i+=2) {
-				const byte = clean_hex[i] + clean_hex[i+1]
-				chars.push(parseInt(byte, 16))
-			}
-			return new TextDecoder().decode(new Uint8Array(chars))
-		}
+	//hex can be in format X' or 0x
+	//const regex_pattern = /^(0[xX])[a-fA-F0-9]+$/
+	const regex_pattern = /^(0[xX]|[xX]')?([a-fA-F0-9]+)'?$/
+	const match = hex.match(regex_pattern) 
+	
+	if (!match) {
+		return undefined
+	}
+
+	const [_, prefix_match, hex_match] = match
+
+	let clean_hex = hex_match
+	if (prefix_match.toLowerCase() === '0x' && clean_hex.length % 2) {
+		clean_hex = clean_hex.padStart(clean_hex.length + 1, "0")
+	} else if (prefix_match.toLowerCase() === "x'" && clean_hex.length % 2) {
+		// mysql only pads hex starting with 0x. X' should fail when odd length 
+		return undefined
+	}
+
+	if (format === 'number') {
 		return parseInt(clean_hex, 16)
 	}
-	return undefined 
+
+	const bytes = new Uint8Array(clean_hex.length / 2)
+	for (let i = 0; i < clean_hex.length; i += 2) {
+		bytes[i / 2] = parseInt(clean_hex.substring(i, i + 2), 16)
+	}
+	if (format === 'string') {
+		return new TextDecoder().decode(bytes)
+	}
+	return bytes
 }
 
-export { deep_copy, parse_hex }
+/**
+ * cleanly compare two hex values to ensure they are equal
+ * */
+const compare_hex = (v1: string|number, v2: string|number): boolean => {
+	const parsed_v1 = parse_hex(v1)
+	const parsed_v2= parse_hex(v2)
+
+	if (parsed_v1 === undefined || parsed_v2 === undefined) {
+		return false
+	}
+
+	if (Array.isArray(parsed_v1) && Array.isArray(parsed_v2)) {
+		if(parsed_v1.length !== parsed_v2.length) {
+			return false
+		}
+		for (let i = 0; i < parsed_v1.length; i++) {
+			const byte_1 = parsed_v1[i]
+			const byte_2 = parsed_v2[i]
+
+			if (byte_1 !== byte_2) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+const is_date = (value: any): boolean => {
+	DateTime.fromISO(value).isValid
+
+	return false
+}
+
+export { deep_copy, parse_hex, compare_hex, is_date }

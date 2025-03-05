@@ -93,6 +93,7 @@ export default {
     "fields": [
       { "name": "id", "type": "number" },
       { "name": "title", "type": "string" },
+      { "name": "assigned_to", "type": "string" },
       { "name": "created_at", "type": "datetime" },
       { "name": "updated_at", "type": "datetime" },
       { "name": "deleted_at", "type": "datetime" }

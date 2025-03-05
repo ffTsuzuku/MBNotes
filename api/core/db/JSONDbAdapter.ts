@@ -2,13 +2,18 @@ import QueryBuilder from "./QueryBuilder.ts";
 import fs from 'node:fs'
 import { DBAdapter } from "./DBAdapter.ts";
 import { QuerySchema, WhereClause } from "../../types/query_builder_types.ts";
-import { JSONDBRecord, JSONFileDB, JSONTableSchema } from "../../types/db_types.ts";
+import { FieldTypes, JSONDBRecord, JSONFileDB, JSONTableSchema } from "../../types/db_types.ts";
 import {DateTime} from 'luxon'
+import {is_date, parse_hex} from "../utility/index.ts";
+import { DateFormat } from "../../types/types.ts";
 
 interface StandardizationFlags {
 	case_sensitive?: boolean
+	hex_format?: 'string'|'number'|undefined
 }
 export default class JSONDBAdapter extends DBAdapter {
+	private table: JSONTableSchema|undefined = undefined
+
 	constructor() {
 		super()
 	}
@@ -44,10 +49,12 @@ export default class JSONDBAdapter extends DBAdapter {
 			}
 		}
 
+		this.table = table
+
 		//apply joins
 		//apply wheres
 		if(wheres.length) {
-			records = this.apply_wheres(records, wheres)
+			records = this.apply_wheres(wheres)
 		}
 
 		//apply limit
@@ -96,13 +103,133 @@ export default class JSONDBAdapter extends DBAdapter {
 	}
 
 	/**
+	 * When an operator is used with operands of different types, type 
+	 * conversion occurs to make the operands compatible for comparision.
+	 *
+	 * @param T: v1 is the first operand
+	 * @param V: v2 is the second operand
+	 * @return [v1, v2] casted
+	 * @docs https://dev.mysql.com/doc/refman/5.7/en/type-conversion.html
+	 * */
+	private standardize_inputs_for_comparision<T,V>(
+		db_val: T, 
+		query_val: V,
+		db_type: FieldTypes,
+		flags: StandardizationFlags =  {
+			case_sensitive: false,
+		}
+	): [any, any] {
+		const {case_sensitive} = flags
+
+		if (db_val === undefined || db_val === null) {
+			//mix and match so that they never eval to true using direct comparision
+			return [null, query_val]
+		}
+		if (query_val === undefined || query_val === null) {
+			return [db_val, null]
+		}
+		
+		if (db_type === 'number' || db_type == 'float') {
+			if (typeof query_val === 'number') {
+				return [db_val, query_val]
+			}
+
+			if (typeof query_val === 'string') {
+				const as_float = parseFloat(query_val)
+				const as_number = parseInt(query_val)
+				if (as_float % 1 === 0) {
+					return [db_val, as_float]
+				} else if (Number.isInteger(as_number)) {
+					return [db_val, as_number]
+				}
+				return [db_val, 0]
+			}
+		}
+
+		else if (db_type === 'string') {
+			if (parse_hex(db_val as string)) {
+				return [
+					parse_hex(db_val as string, 'number'),
+					parse_hex(query_val as string, 'number')
+				]
+			}
+			if (Number.isInteger(query_val)) {
+				return [parseInt(db_val as string), query_val]
+			} 
+			if (parseFloat(query_val as  string)) {
+				return [parseFloat(db_val as string), query_val]
+			}
+			if (typeof query_val === 'string') {
+				if (case_sensitive) {
+					return [db_val, query_val]
+				}
+				return [(db_val as string).toLowerCase(), query_val.toLowerCase()]
+			}
+		}
+
+		else if (db_type === 'binary') {
+			if (parse_hex(db_val as string)) {
+				return [
+					parse_hex(db_val as string, 'number'),
+					parse_hex(query_val as string, 'number')
+				]
+			}
+		}
+
+		else if (db_type === 'json') {
+
+		}
+
+		else if (db_type === 'date') {
+			return [
+				DateTime.fromISO(db_val as string).toFormat('YYYY-MM-DD'),
+				DateTime.fromISO(query_val as string).toFormat('YYYY-MM-DD'),
+			]
+		}
+
+		else if (db_type === 'timestamp') {
+			return [
+				DateTime.fromISO(db_val as string).toMillis(),
+				DateTime.fromISO(query_val as string).toMillis(),
+			]
+		}
+
+		else if (db_type === 'datetime') {
+			const format: DateFormat = 'YYYY-MM-DD HH:mm:ss'
+			return [
+				DateTime.fromISO(db_val as string).toFormat(format),
+				DateTime.fromISO(query_val as string).toFormat(format),
+			]
+		}
+
+		else if (db_type === 'time') {
+			const format: DateFormat = 'HH:mm:ss'
+			return [
+				DateTime.fromISO(db_val as string).toFormat(format),
+				DateTime.fromISO(query_val as string).toFormat(format),
+			]
+		}
+
+		else if (db_type === 'year') {
+			const format: DateFormat = 'YYYY'
+			return [
+				DateTime.fromISO(db_val as string).toFormat(format),
+				DateTime.fromISO(query_val as string).toFormat(format),
+			]
+		}
+
+		//blob fields /  cases where conversions arent neded
+		return [db_val, query_val]
+	}
+
+	/**
 	 * A function that emulates the exact spec of mysql Like. 
 	 * @WARN: MAKE SURE TO CALL standardize_values on inputs before this
 	 * @return: returns true if the like matches false otherwise
 	 * */
 	private perform_like(
-		db_val: string,
-		query_val: string,
+		db_val: string|undefined,
+		query_val: string|undefined,
 		flags: {
 			case_sensitive?: boolean,
 			not_like?: boolean,
@@ -111,6 +238,9 @@ export default class JSONDBAdapter extends DBAdapter {
 			case_sensitive: false, not_like: false, rlike: false
 		}
 	): boolean {
+		if (db_val === undefined || query_val === undefined) {
+			return false
+		}
 		const {case_sensitive = false, not_like = false, rlike = false} = flags
 
 		if (!rlike && typeof query_val === 'number') {
@@ -187,8 +317,24 @@ export default class JSONDBAdapter extends DBAdapter {
 		if (not_like) {
 			return !regex.test(db_val)
 		}
-		//console.log({regex_flags, safe_regex_string, db_val, not_like, regex})
 		return regex.test(db_val)
+	}
+
+	private get_field_type(column: string): FieldTypes {
+		if(!this.table) {
+			throw new Error("Table isn't set. Cannot retrieve field type")
+		}
+
+		const { fields } = this.table
+		const field_info = fields.find(field => {
+			return  field.name === column
+		})
+
+		if (!field_info) {
+			throw new Error(`Table Schema is missing field information for ${column}`)
+		}
+		const { type: field_type } = field_info!
+		return field_type
 	}
 
 	//@todo: we need to make it so that all functions called take in a new 
@@ -204,10 +350,15 @@ export default class JSONDBAdapter extends DBAdapter {
 			throw Error(`Trying to apply a where on ${column}`)
 		}
 
+		if (!this.table) {
+			throw new Error('JSONDBAdapter missing table data')
+		}
+
+		const field_type = this.get_field_type(column)
 		const records_to_filter = boolean === 'or' ? original_records : records
 		return  records_to_filter.filter(record => {
-			let [db_val, query_val] = this.standardize_values(
-				record[column], value
+			let [db_val, query_val] = this.standardize_inputs_for_comparision(
+				record[column], value, field_type
 			)
 			if (operator === '=') {
 				// equal operator is not null safe, use <=> operator for that
@@ -241,8 +392,8 @@ export default class JSONDBAdapter extends DBAdapter {
 				return this.perform_like(db_val, query_val, {not_like: true})
 			}
 			if (operator === 'like binary') {
-				[db_val, query_val] = this.standardize_values(
-					record[column], value, {case_sensitive: true}
+				[db_val, query_val] = this.standardize_inputs_for_comparision(
+					record[column], value, field_type, {case_sensitive: true}
 				)
 				return this.perform_like(
 					db_val, query_val, {case_sensitive: true}
@@ -253,8 +404,8 @@ export default class JSONDBAdapter extends DBAdapter {
 				operator === 'similar to' ||
 				operator == 'regexp'
 			) {
-				[db_val, query_val] = this.standardize_values(
-					record[column], value, 
+				[db_val, query_val] = this.standardize_inputs_for_comparision(
+					record[column], value, field_type
 				)
 				return this.perform_like(
 					db_val, query_val, {rlike: true}
@@ -266,16 +417,16 @@ export default class JSONDBAdapter extends DBAdapter {
 				operator === 'not regexp' ||
 				operator === '!~'
 			) {
-				[db_val, query_val] = this.standardize_values(
-					record[column], value, 
+				[db_val, query_val] = this.standardize_inputs_for_comparision(
+					record[column], value, field_type
 				)
 				return this.perform_like(
 					db_val, query_val, {rlike: true, not_like: true}
 				)
 			}
 			if (operator === '!~*') {
-				[db_val, query_val] = this.standardize_values(
-					record[column], value, 
+				[db_val, query_val] = this.standardize_inputs_for_comparision(
+					record[column], value, field_type
 				)
 				return this.perform_like(
 					db_val, query_val, {
@@ -359,9 +510,46 @@ export default class JSONDBAdapter extends DBAdapter {
 		})
 	}
 
+	private apply_where_between_or_not_between(
+		original_records: JSONDBRecord[],
+		records: JSONDBRecord[],
+		where_clause: WhereClause,
+	): JSONDBRecord[] {
+		const { boolean, column, type, value } = where_clause
+
+		if (!column) {
+			throw new Error('Please specify column for whereIn clause')
+		}
+
+		let records_to_filter = boolean === 'or'  ? original_records : records
+		if (!Array.isArray(value)) {
+			throw new Error(`${type} clause expects an array value`)
+		}
+		const [min, max] = value
+		const field_type = this.get_field_type(column)
+		return records_to_filter.filter(record => {
+			const value = record[column]
+			const [db_val, standard_max] = this.standardize_inputs_for_comparision(
+				value, max, field_type
+			)
+			const [_, standard_min] = this.standardize_inputs_for_comparision(
+				value, min, field_type
+			)
+			if (db_val === null || db_val === undefined) {
+				return false
+			}
+			return db_val >= standard_min && db_val <= standard_max
+		})
+	}
+
 	protected apply_wheres(
-		records: JSONDBRecord[], wheres: WhereClause[]
+		wheres: WhereClause[]
 	) {
+		if (!this.table) {
+			throw new Error('JSONDBAdapter missing table data')
+		}
+		const {records} = this.table
+
 		let result: Record<string, any>[]  = []
 
 		for (const where of wheres) {
@@ -383,6 +571,12 @@ export default class JSONDBAdapter extends DBAdapter {
 				filter_result = this.apply_where_in_or_not_in(
 					records, records_to_filter, where
 				)
+			} else if (where.type === 'Between') {
+				filter_result = this.apply_where_between_or_not_between(
+					records, records_to_filter, where
+				)
+			} else {
+				throw new Error('Unsupported where clause')
 			}
 
 			if (where.boolean === 'or') {
