@@ -538,7 +538,10 @@ export default class JSONDBAdapter extends DBAdapter {
 			if (db_val === null || db_val === undefined) {
 				return false
 			}
-			return db_val >= standard_min && db_val <= standard_max
+			if (type === 'Between') {
+				return db_val >= standard_min && db_val <= standard_max
+			}
+			return db_val < standard_min && db_val > standard_max
 		})
 	}
 
